@@ -42,11 +42,7 @@ public class GraphicView extends JPanel implements View {
 		g.setColor(Color.RED);
 		g.fillRect(bg.x, bg.y, bg.width, bg.height);
 
-		// Paint Start Point
-		g.setColor(Color.GREEN);
-		g.fillRect(world.getStartX() * fieldDimension.width,
-				   world.getStartY() * fieldDimension.height,
-					  fieldDimension.width, fieldDimension.height);
+
 
 		// Paint End Point
 		g.setColor(Color.BLUE);

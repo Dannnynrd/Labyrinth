@@ -15,8 +15,6 @@ public class ConsoleView implements View {
 		int playerY = world.getPlayerY();
 		int EndX = world.getEndX();
 		int EndY = world.getEndY();
-		int StartX = world.getStartX();
-		int StartY = world.getStartY();
 
 
 		for (int row = 0; row < world.getHeight(); row++) {
@@ -25,7 +23,6 @@ public class ConsoleView implements View {
 				 Player Position: #
 				 Wall: H
 				 Space: .
-				 Start: S
 				 End: E
 				 */
 
@@ -35,10 +32,7 @@ public class ConsoleView implements View {
 					System.out.print("H");
 				} else if (row == EndX && col == EndY) {
 					System.out.print("E");
-				} else if (row == StartX && col == StartY) {
-					System.out.print("S");
-				}
-				else {
+				} else {
 					System.out.print(".");
 				}
 			}

@@ -8,6 +8,7 @@ import javax.swing.JFrame;
 import model.World;
 import view.ConsoleView;
 import view.GraphicView;
+import java.util.Random;
 
 /**
  * This is our main program. It is responsible for creating all of the objects
@@ -18,9 +19,11 @@ public class Labyrinth {
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                // Dimension of the game board (10x10).
-                int width = 10;
-                int height = 10;
+                Random rand = new Random();
+                // Dimension of the game board (Random between 11 and 21) uneven numbers are better for labyrinth-Algorithm.
+                int width = rand.nextInt(6) * 2 + 11;
+                int height = rand.nextInt(6) * 2 + 11;
+
                 // Create a new game world.
                 World world = new World(width, height);
 
