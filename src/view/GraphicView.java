@@ -41,14 +41,24 @@ public class GraphicView extends JPanel implements View {
 		// Paint background
 		g.setColor(Color.RED);
 		g.fillRect(bg.x, bg.y, bg.width, bg.height);
+
+		for(int row = 0; row < world.getHeight(); row++) {
+			for (int col = 0; col < world.getWidth(); col++) {
+				if(world.isWall(col,row)){
+					g.setColor(Color.DARK_GRAY);
+					g.fillRect(col * fieldDimension.width, row * fieldDimension.height, fieldDimension.width, fieldDimension.height);
+				}
+			}
+		}
 		// Paint player
 		g.setColor(Color.BLACK);
 		g.fillRect(player.x, player.y, player.width, player.height);
 	}
+	private World world;
 
 	@Override
 	public void update(World world) {
-
+		this.world = world;
 		// Update players size and location
 		player.setSize(fieldDimension);
 		player.setLocation(

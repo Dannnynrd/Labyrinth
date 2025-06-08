@@ -19,7 +19,8 @@ public class World {
 	private int playerX = 0;
 	/** The player's y position in the world. */
 	private int playerY = 0;
-
+	/** walls */
+	private boolean[][] walls;
 	/** Set of views registered to be notified of world updates. */
 	private final ArrayList<View> views = new ArrayList<>();
 
@@ -30,6 +31,7 @@ public class World {
 		// Normally, we would check the arguments for proper values
 		this.width = width;
 		this.height = height;
+		this.walls = new boolean[width][height];
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -108,8 +110,13 @@ public class World {
 	public void movePlayer(Direction direction) {	
 		// The direction tells us exactly how much we need to move along
 		// every direction
-		setPlayerX(getPlayerX() + direction.deltaX);
-		setPlayerY(getPlayerY() + direction.deltaY);
+		int newPlayerX = getPlayerX() + direction.deltaX;
+		int newPlayerY = getPlayerY() + direction.deltaY;
+		// Checks whether the Player is moving Towards a wall if there is a wall the player cant move to its direction
+		if (!isWall(newPlayerX, newPlayerY)) {
+			setPlayerX(newPlayerX);
+			setPlayerY(newPlayerY);
+		}
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -135,4 +142,11 @@ public class World {
 		}
 	}
 
+	// Checks if there is a Wall
+	public boolean isWall(int x, int y) {
+		if  (x >= 0 && x < width && y >= 0 && y < height) {
+			return walls[y][x];
+		}
+		return true; //
+	}
 }
