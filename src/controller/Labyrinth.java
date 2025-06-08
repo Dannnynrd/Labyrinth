@@ -1,7 +1,6 @@
 package controller;
 
-import java.awt.Dimension;
-import java.awt.Insets;
+import java.awt.*;
 
 import javax.swing.JFrame;
 
@@ -46,7 +45,7 @@ public class Labyrinth {
                 controller.setTitle("Square Move Practice");
                 controller.setResizable(false);
                 controller.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                controller.getContentPane().add(gview);
+                controller.getContentPane().add(gview, BorderLayout.CENTER);
                 // pack() is needed before JFrame size can be calculated.
                 controller.pack();
 

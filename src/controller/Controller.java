@@ -1,5 +1,5 @@
 package controller;
-
+import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -8,7 +8,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.List;
 
-import javax.swing.JFrame;
+import javax.swing.*;
 
 import model.Direction;
 import model.World;
@@ -20,7 +20,8 @@ import view.View;
 public class Controller extends JFrame implements KeyListener, ActionListener, MouseListener {
 
 	/** The world that is updated upon every key press. */
-	private World world;
+	private final World world;
+	private final JButton restartButton;
 	private List<View> views;
 
 	/**
@@ -33,7 +34,20 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	public Controller(World world) {
 		// Remember the world
 		this.world = world;
-		
+		setLayout(new BorderLayout());
+
+		this.restartButton = new JButton("Restart");
+
+		this.restartButton.addActionListener(this);
+
+		this.restartButton.setFocusable(false);
+
+		JPanel buttonPanel = new JPanel();
+		buttonPanel.add(restartButton);
+
+		this.add(buttonPanel, BorderLayout.SOUTH);
+
+
 		// Listen for key events
 		addKeyListener(this);
 		// Listen for mouse events.
@@ -79,7 +93,9 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		// TODO Auto-generated method stub
+		if (e.getSource() == restartButton) {
+			world.restart();
+		}
 		
 	}
 	

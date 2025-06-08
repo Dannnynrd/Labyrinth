@@ -46,13 +46,27 @@ public class World {
 		this.height = height;
 		this.walls = new boolean[width][height];
 		this.enemies = new ArrayList<>();
+
+		restart();
+	}
+	public void restart() {
+
+		this.gameOver = false;
+		this.enemies.clear();
+
+		for (int i = 0; i < height; i++) {
+			for (int j = 0; j < width; j++) {
+				this.walls[j][i] = false;
+			}
+		}
+
 		Random rand = new Random();
 
 		// Random Position Player
 		this.playerX = rand.nextInt(width);
 		this.playerY = rand.nextInt(height);
 
-		// Random EndPosition that is noot the Startposition
+		// Random EndPosition that is not the Startposition
 
 		do {
 			this.endX = rand.nextInt(width);
@@ -90,6 +104,7 @@ public class World {
 			enemies.add(new Point(enemyX,enemyY));
 		}
 
+		updateViews();
 
 	}
 
