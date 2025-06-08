@@ -42,6 +42,18 @@ public class GraphicView extends JPanel implements View {
 		g.setColor(Color.RED);
 		g.fillRect(bg.x, bg.y, bg.width, bg.height);
 
+		// Paint Start Point
+		g.setColor(Color.GREEN);
+		g.fillRect(world.getStartX() * fieldDimension.width,
+				   world.getStartY() * fieldDimension.height,
+					  fieldDimension.width, fieldDimension.height);
+
+		// Paint End Point
+		g.setColor(Color.BLUE);
+		g.fillRect(world.getEndX() * fieldDimension.width,
+				   world.getEndY() * fieldDimension.height, fieldDimension.width
+				, fieldDimension.height);
+
 		for(int row = 0; row < world.getHeight(); row++) {
 			for (int col = 0; col < world.getWidth(); col++) {
 				if(world.isWall(col,row)){

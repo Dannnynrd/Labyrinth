@@ -13,13 +13,32 @@ public class ConsoleView implements View {
 		// The player's position
 		int playerX = world.getPlayerX();
 		int playerY = world.getPlayerY();
+		int EndX = world.getEndX();
+		int EndY = world.getEndY();
+		int StartX = world.getStartX();
+		int StartY = world.getStartY();
+
 
 		for (int row = 0; row < world.getHeight(); row++) {
 			for (int col = 0; col < world.getWidth(); col++) {
-				// If the player is here, print #, otherwise print .
+				/**
+				 Player Position: #
+				 Wall: H
+				 Space: .
+				 Start: S
+				 End: E
+				 */
+
 				if (row == playerY && col == playerX) {
 					System.out.print("#");
-				} else {
+				} else if (world.isWall(col, row)) {
+					System.out.print("H");
+				} else if (row == EndX && col == EndY) {
+					System.out.print("E");
+				} else if (row == StartX && col == StartY) {
+					System.out.print("S");
+				}
+				else {
 					System.out.print(".");
 				}
 			}
