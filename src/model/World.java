@@ -2,7 +2,8 @@ package model;
 
 import java.util.ArrayList;
 import java.util.Random;
-
+import java.awt.Point;
+import java.util.List;
 import view.View;
 
 /**
@@ -22,7 +23,11 @@ public class World {
 	private int playerY = 0;
 	/** walls */
 	private boolean[][] walls;
-	/** Start Block */
+	/** Enemies */
+	private final List<Point> enemies;
+	/** Game over (True / False) */
+	private boolean gameOver;
+
 
 
 	/** End Block */
@@ -40,7 +45,7 @@ public class World {
 		this.width = width;
 		this.height = height;
 		this.walls = new boolean[width][height];
-
+		this.enemies = new ArrayList<>();
 		Random rand = new Random();
 
 		// Random Position Player
@@ -67,6 +72,22 @@ public class World {
 			if (!isPlayerPos && !isEndPos) {
 				this.walls[wallX][wallY] = true;
 			}
+		}
+
+		/** Generate Enemies (0.05% of the Field) */
+
+		int numberOfEnemies = (int)(width * height * 0.05);
+		for (int i = 0; i < numberOfEnemies; i++) {
+			int enemyX, enemyY;
+			boolean isWall, isPlayer, isEnd;
+			do {
+				enemyX = rand.nextInt(width);
+				enemyY = rand.nextInt(height);
+				isWall = isWall(enemyX, enemyY);
+				isPlayer = (enemyX == this.playerX && enemyY == this.playerY);
+				isEnd = (enemyX == this.endX && enemyY == this.endY);
+			} while (isWall || isPlayer || isEnd);
+			enemies.add(new Point(enemyX,enemyY));
 		}
 
 
@@ -144,7 +165,19 @@ public class World {
 		return endY;
 	}
 
+	public List<Point> getEnemies() {
+		return enemies;
+	}
 
+	public boolean isGameOver() {return gameOver;}
+	public boolean isEnemyAt(int x, int y) {
+		for (Point enemy : enemies) {
+			if(enemy.x == x && enemy.y == y){
+				return true;
+			}
+		}
+		return false;
+	}
 	///////////////////////////////////////////////////////////////////////////
 	// Player Management
 	
@@ -154,7 +187,10 @@ public class World {
 	 * @param direction where to move.
 	 */
 
-	public void movePlayer(Direction direction) {	
+	public void movePlayer(Direction direction) {
+		if (isGameOver()) {
+			return;
+		}
 		// The direction tells us exactly how much we need to move along
 		// every direction
 		int newPlayerX = getPlayerX() + direction.deltaX;
@@ -163,6 +199,11 @@ public class World {
 		if (!isWall(newPlayerX, newPlayerY)) {
 			setPlayerX(newPlayerX);
 			setPlayerY(newPlayerY);
+
+			if(isEnemyAt(getPlayerX(),getPlayerY())){
+				this.gameOver = true;
+				updateViews();
+			}
 		}
 	}
 

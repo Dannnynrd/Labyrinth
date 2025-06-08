@@ -21,7 +21,7 @@ public class ConsoleView implements View {
 			for (int col = 0; col < world.getWidth(); col++) {
 				/**
 				 Player Position: #
-				 Wall: H
+				 Wall: +
 				 Space: .
 				 End: E
 				 */
@@ -29,7 +29,7 @@ public class ConsoleView implements View {
 				if (row == playerY && col == playerX) {
 					System.out.print("#");
 				} else if (world.isWall(col, row)) {
-					System.out.print("H");
+					System.out.print("+");
 				} else if (row == EndX && col == EndY) {
 					System.out.print("E");
 				} else {

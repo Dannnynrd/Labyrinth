@@ -1,9 +1,6 @@
 package view;
 
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Rectangle;
+import java.awt.*;
 
 import javax.swing.JPanel;
 
@@ -42,8 +39,6 @@ public class GraphicView extends JPanel implements View {
 		g.setColor(Color.RED);
 		g.fillRect(bg.x, bg.y, bg.width, bg.height);
 
-
-
 		// Paint End Point
 		g.setColor(Color.BLUE);
 		g.fillRect(world.getEndX() * fieldDimension.width,
@@ -61,6 +56,30 @@ public class GraphicView extends JPanel implements View {
 		// Paint player
 		g.setColor(Color.BLACK);
 		g.fillRect(player.x, player.y, player.width, player.height);
+
+		// Paint enemies
+		g.setColor(Color.ORANGE);
+		if(world.getEnemies() != null){
+			for(Point enemy: world.getEnemies()){
+				g.fillOval(
+						enemy.x * fieldDimension.width,
+						enemy.y * fieldDimension.height,
+						fieldDimension.width,
+						fieldDimension.height
+				);
+			}
+		}
+
+		if (world.isGameOver()){
+			g.setColor(new Color(0, 0, 0, 150));
+			g.fillRect(0, 0, getWidth(), getHeight());
+
+			g.setColor(Color.WHITE);
+			g.setFont(new Font("Arial", Font.BOLD, 40));
+			String msg = "GAME OVER";
+			int textWidth = g.getFontMetrics().stringWidth(msg);
+			g.drawString(msg, (getWidth() - textWidth) / 2, getHeight() / 2);
+		}
 	}
 	private World world;
 
