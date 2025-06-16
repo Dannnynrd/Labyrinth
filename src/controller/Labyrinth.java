@@ -67,7 +67,7 @@ public class Labyrinth {
         world.registerView(cview);
 
         // Create controller and initialize JFrame.
-        Controller controller = new Controller(world);
+        Controller controller = new Controller(world, fieldDimensions);
         controller.setTitle("Labyrinth Game");
         controller.setResizable(false);
         controller.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

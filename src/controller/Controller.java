@@ -1,5 +1,5 @@
 package controller;
-import java.awt.BorderLayout;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -23,6 +23,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	private final World world;
 	private final JButton restartButton;
 	private List<View> views;
+	private final Dimension fieldDimensions;
 
 	/**
 	 * Creates a new instance.
@@ -31,9 +32,10 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	 * @param caged the {@link GraphicsProgram} we want to listen for key presses
 	 *              on.
 	 */
-	public Controller(World world) {
+	public Controller(World world, Dimension fieldDimensions) {
 		// Remember the world
 		this.world = world;
+		this.fieldDimensions = fieldDimensions;
 		setLayout(new BorderLayout());
 
 		this.restartButton = new JButton("Restart");
@@ -95,6 +97,24 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource() == restartButton) {
 			world.restart();
+
+			// RESIZE LOGIC - This is the new part
+			int width = world.getWidth();
+			int height = world.getHeight();
+
+			// Get the size of the window's border and title bar
+			Insets insets = getInsets();
+
+			// Calculate the new window size
+			int windowX = width * this.fieldDimensions.width + insets.left + insets.right;
+			int windowY = height * this.fieldDimensions.height + insets.bottom + insets.top;
+			Dimension size = new Dimension(windowX, windowY);
+
+			// Apply the new size
+			setSize(size);
+			setMinimumSize(size);
+
+			repaint();
 		}
 		
 	}
