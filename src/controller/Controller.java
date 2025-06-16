@@ -96,27 +96,12 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource() == restartButton) {
-			world.restart();
+			world.restart(); // Das Modell und die Ansichten werden aktualisiert
 
-			// RESIZE LOGIC - This is the new part
-			int width = world.getWidth();
-			int height = world.getHeight();
-
-			// Get the size of the window's border and title bar
-			Insets insets = getInsets();
-
-			// Calculate the new window size
-			int windowX = width * this.fieldDimensions.width + insets.left + insets.right;
-			int windowY = height * this.fieldDimensions.height + insets.bottom + insets.top;
-			Dimension size = new Dimension(windowX, windowY);
-
-			// Apply the new size
-			setSize(size);
-			setMinimumSize(size);
-
-			repaint();
+			// Sagt dem Fenster, seine Größe an den neuen Inhalt anzupassen.
+			// pack() wird getPreferredSize() von GraphicView aufrufen.
+			pack();
 		}
-		
 	}
 	
 	/////////////////// Mouse Events ////////////////////////////////

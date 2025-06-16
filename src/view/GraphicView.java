@@ -100,4 +100,15 @@ public class GraphicView extends JPanel implements View {
 
 		repaint();
 	}
+
+	@Override
+	public Dimension getPreferredSize() {
+		if (world == null) {
+			// Fallback, falls die Welt noch nicht existiert
+			return new Dimension(100, 100);
+		}
+		// Die bevorzugte Größe basiert auf den aktuellen Dimensionen der Welt
+		return new Dimension(world.getWidth() * fieldDimension.width,
+				world.getHeight() * fieldDimension.height);
+	}
 }
