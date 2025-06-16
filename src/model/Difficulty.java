@@ -4,9 +4,9 @@ import java.util.Random;
 
 public enum Difficulty {
     // We now store a base size and a variance for the size.
-    EASY(11, 2, 0.20, 0.0),      // Size can be 11, 13, 15
-    MEDIUM(21, 3, 0.30, 0.05),   // Size can be 21, 23, 25, 27
-    HARD(31, 4, 0.35, 0.08);     // Size can be 31, 33, 35, 37, 39
+    EASY(25, 2, 0.20, 0.0),
+    MEDIUM(35, 3, 0.30, 0.05),
+    HARD(45, 4, 0.35, 0.08);
 
     private final int baseSize;
     private final int sizeVariance; // How many steps of 2 can be added to the base size
