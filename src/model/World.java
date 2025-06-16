@@ -14,9 +14,9 @@ import view.View;
 public class World {
 
 	/** The world's width. */
-	private final int width;
+	private int width;
 	/** The world's height. */
-	private final int height;
+	private int height;
 	/** The player's x position in the world. */
 	private int playerX = 0;
 	/** The player's y position in the world. */
@@ -27,6 +27,8 @@ public class World {
 	private final List<Point> enemies;
 	/** Game over (True / False) */
 	private boolean gameOver;
+
+	private final Difficulty difficulty;
 
 
 
@@ -40,16 +42,19 @@ public class World {
 	/**
 	 * Creates a new world with the given size.t
 	 */
-	public World(int width, int height) {
+	public World(Difficulty difficulty) {
 		// Normally, we would check the arguments for proper values
-		this.width = width;
-		this.height = height;
-		this.walls = new boolean[width][height];
+		this.difficulty = difficulty;
 		this.enemies = new ArrayList<>();
 
 		restart();
 	}
+
 	public void restart() {
+		// Set parameters from the difficulty enum
+		this.width = difficulty.generateRandomSize();
+		this.height = difficulty.generateRandomSize();
+		this.walls = new boolean[width][height]; // Initialize the walls array here
 
 		this.gameOver = false;
 		this.enemies.clear();
@@ -61,36 +66,28 @@ public class World {
 		}
 
 		Random rand = new Random();
-
-		// Random Position Player
 		this.playerX = rand.nextInt(width);
 		this.playerY = rand.nextInt(height);
-
-		// Random EndPosition that is not the Startposition
 
 		do {
 			this.endX = rand.nextInt(width);
 			this.endY = rand.nextInt(height);
 		} while (this.endX == this.playerX && this.endY == this.playerY);
 
-		// Random Walls (30%)
-		int numberOfWalls = (int) (width * height * 0.3);
-
+		// Use the wall percentage from the enum
+		int numberOfWalls = (int) (width * height * difficulty.getWallPercentage());
 		for (int i = 0; i < numberOfWalls; i++) {
 			int wallX = rand.nextInt(width);
 			int wallY = rand.nextInt(height);
-
-			boolean isPlayerPos  = (wallX == this.playerX) && (wallY == this.playerY);
+			boolean isPlayerPos = (wallX == this.playerX) && (wallY == this.playerY);
 			boolean isEndPos = (wallX == this.endX) && (wallY == this.endY);
-
 			if (!isPlayerPos && !isEndPos) {
 				this.walls[wallX][wallY] = true;
 			}
 		}
 
-		/** Generate Enemies (0.05% of the Field) */
-
-		int numberOfEnemies = (int)(width * height * 0.05);
+		// Use the enemy percentage from the enum
+		int numberOfEnemies = (int) (width * height * difficulty.getEnemyPercentage());
 		for (int i = 0; i < numberOfEnemies; i++) {
 			int enemyX, enemyY;
 			boolean isWall, isPlayer, isEnd;
@@ -101,19 +98,19 @@ public class World {
 				isPlayer = (enemyX == this.playerX && enemyY == this.playerY);
 				isEnd = (enemyX == this.endX && enemyY == this.endY);
 			} while (isWall || isPlayer || isEnd);
-			enemies.add(new Point(enemyX,enemyY));
+			enemies.add(new Point(enemyX, enemyY));
 		}
 
 		updateViews();
-
 	}
+
 
 	///////////////////////////////////////////////////////////////////////////
 	// Getters and Setters
 
 	/**
 	 * Returns the width of the world.
-	 * 
+	 *
 	 * @return the width of the world.
 	 */
 	public int getWidth() {
@@ -122,7 +119,7 @@ public class World {
 
 	/**
 	 * Returns the height of the world.
-	 * 
+	 *
 	 * @return the height of the world.
 	 */
 	public int getHeight() {
@@ -131,7 +128,7 @@ public class World {
 
 	/**
 	 * Returns the player's x position.
-	 * 
+	 *
 	 * @return the player's x position.
 	 */
 	public int getPlayerX() {
@@ -140,20 +137,20 @@ public class World {
 
 	/**
 	 * Sets the player's x position.
-	 * 
+	 *
 	 * @param playerX the player's x position.
 	 */
 	public void setPlayerX(int playerX) {
 		playerX = Math.max(0, playerX);
 		playerX = Math.min(getWidth() - 1, playerX);
 		this.playerX = playerX;
-		
+
 		updateViews();
 	}
 
 	/**
 	 * Returns the player's y position.
-	 * 
+	 *
 	 * @return the player's y position.
 	 */
 	public int getPlayerY() {
@@ -162,14 +159,14 @@ public class World {
 
 	/**
 	 * Sets the player's y position.
-	 * 
+	 *
 	 * @param playerY the player's y position.
 	 */
 	public void setPlayerY(int playerY) {
 		playerY = Math.max(0, playerY);
 		playerY = Math.min(getHeight() - 1, playerY);
 		this.playerY = playerY;
-		
+
 		updateViews();
 	}
 
@@ -195,10 +192,10 @@ public class World {
 	}
 	///////////////////////////////////////////////////////////////////////////
 	// Player Management
-	
+
 	/**
 	 * Moves the player along the given direction.
-	 * 
+	 *
 	 * @param direction where to move.
 	 */
 
@@ -228,7 +225,7 @@ public class World {
 	/**
 	 * Adds the given view of the world and updates it once. Once registered through
 	 * this method, the view will receive updates whenever the world changes.
-	 * 
+	 *
 	 * @param view the view to be registered.
 	 */
 	public void registerView(View view) {
