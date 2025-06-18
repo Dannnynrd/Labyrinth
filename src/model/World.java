@@ -102,6 +102,14 @@ public class World {
 			enemies.add(new Point(enemyX, enemyY));
 		}
 
+		// Cheks if user is on an Enemy
+		for (Point enemy : enemies) {
+			if (enemy.x == playerX && enemy.y == playerY) {
+				this.gameOver = true; // Spieler startet auf einem Gegner, Spiel vorbei
+				break;
+			}
+		}
+
 		updateViews();
 	}
 
@@ -152,7 +160,7 @@ public class World {
 		playerX = Math.min(getWidth() - 1, playerX);
 		this.playerX = playerX;
 
-		updateViews();
+		// updateViews(); // updateViews wird in movePlayer() aufgerufen
 	}
 
 	/**
@@ -174,7 +182,7 @@ public class World {
 		playerY = Math.min(getHeight() - 1, playerY);
 		this.playerY = playerY;
 
-		updateViews();
+		// updateViews(); // updateViews wird in movePlayer() aufgerufen
 	}
 
 	public int getEndX() {
@@ -197,6 +205,12 @@ public class World {
 		}
 		return false;
 	}
+
+	// NEU: Getter für das Gegner-Bewegungsintervall aus Difficulty
+	public long getEnemyMoveIntervalMillis() {
+		return difficulty.getEnemyMoveIntervalMillis();
+	}
+
 	///////////////////////////////////////////////////////////////////////////
 	// Player Management
 
@@ -207,7 +221,7 @@ public class World {
 	 */
 
 	public void movePlayer(Direction direction) {
-		if (isGameOver()) {
+		if (isGameOver() || isPaused()) { // NEU: Spieler kann sich nicht bewegen, wenn pausiert
 			return;
 		}
 		// The direction tells us exactly how much we need to move along
@@ -221,10 +235,82 @@ public class World {
 
 			if(isEnemyAt(getPlayerX(),getPlayerY())){
 				this.gameOver = true;
-				updateViews();
+				// updateViews(); // wird von moveEnemies aufgerufen, oder im Timer-Callback
 			}
 		}
+		updateViews(); // Update views after player move
 	}
+
+	// NEU: Methode zum Bewegen aller Gegner
+	public void moveEnemies() {
+		if (isPaused() || isGameOver()) {
+			return;
+		}
+
+		Random rand = new Random();
+
+		for (Point enemy : enemies) {
+			int currentEnemyX = enemy.x;
+			int currentEnemyY = enemy.y;
+
+			int targetX = playerX;
+			int targetY = playerY;
+
+			int deltaX = Integer.compare(targetX, currentEnemyX); // -1, 0, or 1
+			int deltaY = Integer.compare(targetY, currentEnemyY); // -1, 0, or 1
+
+			boolean movedThisTurn = false;
+
+			// Versuche, dich in eine Richtung zu bewegen, oder wähle zufällig
+			if (deltaX != 0 && deltaY != 0) {
+				if (rand.nextBoolean()) { // Versuche, horizontal zu bewegen
+					int potentialNewX = currentEnemyX + deltaX;
+					if (!isWall(potentialNewX, currentEnemyY)) {
+						enemy.setLocation(potentialNewX, currentEnemyY);
+						movedThisTurn = true;
+					} else { // Wenn horizontal blockiert, versuche vertikal
+						int potentialNewY = currentEnemyY + deltaY;
+						if (!isWall(currentEnemyX, potentialNewY)) {
+							enemy.setLocation(currentEnemyX, potentialNewY);
+							movedThisTurn = true;
+						}
+					}
+				} else { // Versuche, vertikal zu bewegen
+					int potentialNewY = currentEnemyY + deltaY;
+					if (!isWall(currentEnemyX, potentialNewY)) {
+						enemy.setLocation(currentEnemyX, potentialNewY);
+						movedThisTurn = true;
+					} else { // Wenn vertikal blockiert, versuche horizontal
+						int potentialNewX = currentEnemyX + deltaX;
+						if (!isWall(potentialNewX, currentEnemyY)) {
+							enemy.setLocation(potentialNewX, currentEnemyY);
+							movedThisTurn = true;
+						}
+					}
+				}
+			} else if (deltaX != 0) { // Nur horizontale Bewegung nötig
+				int potentialNewX = currentEnemyX + deltaX;
+				if (!isWall(potentialNewX, currentEnemyY)) {
+					enemy.setLocation(potentialNewX, currentEnemyY);
+					movedThisTurn = true;
+				}
+			} else if (deltaY != 0) { // Nur vertikale Bewegung nötig
+				int potentialNewY = currentEnemyY + deltaY;
+				if (!isWall(currentEnemyX, potentialNewY)) {
+					enemy.setLocation(currentEnemyX, potentialNewY);
+					movedThisTurn = true;
+				}
+			}
+
+			// Kollisionsprüfung, nachdem der Gegner sich bewegt hat
+			if (enemy.x == playerX && enemy.y == playerY) {
+				this.gameOver = true;
+				break; // Spiel ist vorbei, keine Notwendigkeit, andere Gegner zu bewegen
+			}
+		}
+		updateViews(); // Ansichten aktualisieren, nachdem alle Gegner bewegt wurden
+	}
+
 
 	///////////////////////////////////////////////////////////////////////////
 	// View Management
