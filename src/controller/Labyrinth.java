@@ -60,11 +60,13 @@ public class Labyrinth {
         world.registerView(cview);
 
         // Create controller and initialize JFrame.
-        Controller controller = new Controller(world, fieldDimensions);
+        // PASS GVIEW TO THE CONTROLLER CONSTRUCTOR
+        Controller controller = new Controller(world, fieldDimensions, gview); // MODIFIED LINE: Added gview
         controller.setTitle("Labyrinth Game");
         controller.setResizable(false);
         controller.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        controller.getContentPane().add(gview, BorderLayout.CENTER);
+        // The GraphicView is now added inside the Controller's constructor via JLayeredPane
+        // controller.getContentPane().add(gview, BorderLayout.CENTER); // REMOVE THIS LINE
         controller.pack();
         controller.setVisible(true);
     }

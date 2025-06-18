@@ -28,7 +28,7 @@ public class World {
 	/** Game over (True / False) */
 	private boolean gameOver;
 
-	private final Difficulty difficulty;
+	private Difficulty difficulty; // REMOVED FINAL, now can be changed
 
 	private boolean isPaused = false;
 
@@ -44,14 +44,15 @@ public class World {
 	 * Creates a new world with the given size.t
 	 */
 	public World(Difficulty difficulty) {
-		// Normally, we would check the arguments for proper values
 		this.difficulty = difficulty;
 		this.enemies = new ArrayList<>();
 
-		restart();
+		restart(difficulty); // Call restart with initial difficulty
 	}
 
-	public void restart() {
+	// Modified restart method to accept a new difficulty
+	public void restart(Difficulty newDifficulty) {
+		this.difficulty = newDifficulty; // Update the world's difficulty
 		// Set parameters from the difficulty enum
 		this.width = difficulty.generateRandomSize();
 		this.height = difficulty.generateRandomSize();
@@ -211,6 +212,11 @@ public class World {
 		return difficulty.getEnemyMoveIntervalMillis();
 	}
 
+	// Getter for current difficulty
+	public Difficulty getDifficulty() {
+		return difficulty;
+	}
+
 	///////////////////////////////////////////////////////////////////////////
 	// Player Management
 
@@ -261,26 +267,26 @@ public class World {
 
 			boolean movedThisTurn = false;
 
-			// Versuche, dich in eine Richtung zu bewegen, oder wähle zufällig
+			// Try to move in one direction, or randomly choose
 			if (deltaX != 0 && deltaY != 0) {
-				if (rand.nextBoolean()) { // Versuche, horizontal zu bewegen
+				if (rand.nextBoolean()) { // Try to move horizontally
 					int potentialNewX = currentEnemyX + deltaX;
 					if (!isWall(potentialNewX, currentEnemyY)) {
 						enemy.setLocation(potentialNewX, currentEnemyY);
 						movedThisTurn = true;
-					} else { // Wenn horizontal blockiert, versuche vertikal
+					} else { // If horizontal is blocked, try vertically
 						int potentialNewY = currentEnemyY + deltaY;
 						if (!isWall(currentEnemyX, potentialNewY)) {
 							enemy.setLocation(currentEnemyX, potentialNewY);
 							movedThisTurn = true;
 						}
 					}
-				} else { // Versuche, vertikal zu bewegen
+				} else { // Try to move vertically
 					int potentialNewY = currentEnemyY + deltaY;
 					if (!isWall(currentEnemyX, potentialNewY)) {
 						enemy.setLocation(currentEnemyX, potentialNewY);
 						movedThisTurn = true;
-					} else { // Wenn vertikal blockiert, versuche horizontal
+					} else { // If vertical is blocked, try horizontally
 						int potentialNewX = currentEnemyX + deltaX;
 						if (!isWall(potentialNewX, currentEnemyY)) {
 							enemy.setLocation(potentialNewX, currentEnemyY);
@@ -288,13 +294,13 @@ public class World {
 						}
 					}
 				}
-			} else if (deltaX != 0) { // Nur horizontale Bewegung nötig
+			} else if (deltaX != 0) { // Only horizontal movement needed
 				int potentialNewX = currentEnemyX + deltaX;
 				if (!isWall(potentialNewX, currentEnemyY)) {
 					enemy.setLocation(potentialNewX, currentEnemyY);
 					movedThisTurn = true;
 				}
-			} else if (deltaY != 0) { // Nur vertikale Bewegung nötig
+			} else if (deltaY != 0) { // Only vertical movement needed
 				int potentialNewY = currentEnemyY + deltaY;
 				if (!isWall(currentEnemyX, potentialNewY)) {
 					enemy.setLocation(currentEnemyX, potentialNewY);
@@ -302,13 +308,13 @@ public class World {
 				}
 			}
 
-			// Kollisionsprüfung, nachdem der Gegner sich bewegt hat
+			// Collision check after enemy moves
 			if (enemy.x == playerX && enemy.y == playerY) {
 				this.gameOver = true;
-				break; // Spiel ist vorbei, keine Notwendigkeit, andere Gegner zu bewegen
+				break; // Game is over, no need to move other enemies
 			}
 		}
-		updateViews(); // Ansichten aktualisieren, nachdem alle Gegner bewegt wurden
+		updateViews(); // Update views after all enemies moved
 	}
 
 
