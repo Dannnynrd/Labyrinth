@@ -6,8 +6,7 @@ import java.io.IOException;
 import java.util.Objects;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
-import javax.swing.JButton; // ADDED THIS IMPORT
-import java.awt.event.ActionListener; // ADDED THIS IMPORT
+import java.awt.event.ActionListener; // Keep this import if you still use ActionListener elsewhere, otherwise it can be removed
 
 
 import model.World;
@@ -31,28 +30,20 @@ public class GraphicView extends JPanel implements View {
 	private BufferedImage endImage;
 	private BufferedImage floorImage; // For the walkable path/background
 
-	// New: Restart Button
-	private JButton restartButton;
+	// REMOVED: private JButton restartButton;
 
 	public GraphicView(Dimension fieldDimension) {
 		this.fieldDimension = fieldDimension;
 		loadImages(); // Load images when the view is created
 
-		// Initialize Restart Button (initially hidden)
-		restartButton = new JButton("Restart");
-		restartButton.setVisible(false);
-		restartButton.setFocusable(false); // Remove focus border
-		restartButton.setFont(new Font("Arial", Font.BOLD, 24));
-		restartButton.setBackground(new Color(70, 130, 180)); // SteelBlue
-		restartButton.setForeground(Color.WHITE);
-		setLayout(null); // Use absolute layout to position the button
-		add(restartButton); // Add the button to the panel
+		// REMOVED: Restart Button initialization and adding it to this panel
+		// setLayout(null); // REMOVED: no longer needed for button positioning
 	}
 
-	// Method to set the controller as the action listener for the restart button
-	public void setRestartButtonListener(ActionListener listener) {
-		restartButton.addActionListener(listener);
-	}
+	// REMOVED: Method to set the controller as the action listener for the restart button
+	// public void setRestartButtonListener(ActionListener listener) {
+	//     restartButton.addActionListener(listener);
+	// }
 
 	// load the images
 	private void loadImages() {
@@ -169,24 +160,19 @@ public class GraphicView extends JPanel implements View {
 			int textWidth = g.getFontMetrics().stringWidth(gameOverMsg);
 			g.drawString(gameOverMsg, (getWidth() - textWidth) / 2, getHeight() / 2 - 50); // Positioned higher
 
-			// Display current level
+			// Display current level on game over screen
 			g.setFont(new Font("Arial", Font.BOLD, 24));
 			String levelMsg = "Level: " + world.getCurrentLevel();
 			int levelTextWidth = g.getFontMetrics().stringWidth(levelMsg);
 			g.drawString(levelMsg, (getWidth() - levelTextWidth) / 2, getHeight() / 2 + 20); // Positioned below "GAME OVER"
 
-			// Position and show the restart button
-			int buttonWidth = 150;
-			int buttonHeight = 40;
-			restartButton.setBounds((getWidth() - buttonWidth) / 2, getHeight() / 2 + 70, buttonWidth, buttonHeight); // Position below level
-			restartButton.setVisible(true);
 
 		} else if (world.isPaused()) { // Draw semi-transparent overlay when paused
 			g.setColor(new Color(0, 0, 0, 100)); // Black with 40% opacity
 			g.fillRect(0, 0, getWidth(), getHeight());
-			restartButton.setVisible(false); // Hide the restart button when paused
+
 		} else {
-			restartButton.setVisible(false); // Ensure button is hidden when not game over or paused
+
 		}
 	}
 

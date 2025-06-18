@@ -30,6 +30,8 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	private JLayeredPane layeredPane;
 	private GraphicView graphicView;
 
+	private JButton gameOverRestartButton; // NEW: Declare the restart button for game over screen
+
 	/**
 	 * Creates a new instance.
 	 *
@@ -58,7 +60,22 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 		inGameMenu.setBounds(x, y, menuWidth, menuHeight);
 		inGameMenu.setVisible(false);
 
-		layeredPane.add(inGameMenu, JLayeredPane.PALETTE_LAYER);
+		layeredPane.add(inGameMenu, JLayeredPane.PALETTE_LAYER); // InGameMenu on a higher layer
+
+		// NEW: Initialize and add the Game Over Restart Button
+		gameOverRestartButton = new JButton("Restart Game");
+		gameOverRestartButton.setFont(new Font("Arial", Font.BOLD, 24));
+		gameOverRestartButton.setBackground(new Color(70, 130, 180)); // SteelBlue
+		gameOverRestartButton.setForeground(Color.BLACK);
+		gameOverRestartButton.setFocusPainted(false);
+		gameOverRestartButton.setVisible(false); // Initially hidden
+
+		int buttonWidth = 200; // Adjust size as needed
+		int buttonHeight = 50;
+		int buttonX = (graphicView.getPreferredSize().width - buttonWidth) / 2;
+		int buttonY = (graphicView.getPreferredSize().height / 2) + 70; // Position below game over text
+		gameOverRestartButton.setBounds(buttonX, buttonY, buttonWidth, buttonHeight);
+		layeredPane.add(gameOverRestartButton, JLayeredPane.POPUP_LAYER); // On an even higher layer than menu
 
 		this.add(layeredPane, BorderLayout.CENTER);
 
@@ -66,6 +83,8 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 			world.moveEnemies();
 			if (world.isGameOver()) {
 				enemyMoveTimer.stop();
+				// Show the restart button when game is over
+				gameOverRestartButton.setVisible(true); // NEW
 			}
 		});
 		enemyMoveTimer.start();
@@ -79,8 +98,8 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 			}
 		});
 
-		// Set the controller as the action listener for the GraphicView's restart button
-		graphicView.setRestartButtonListener(e -> handleRestartGame()); // IMPORTANT: This links the game over restart button
+		// NEW: Add action listener for the game over restart button
+		gameOverRestartButton.addActionListener(e -> handleRestartGame());
 
 		addKeyListener(this);
 		addMouseListener(this);
@@ -101,7 +120,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 			case KeyEvent.VK_DOWN:
 			case KeyEvent.VK_LEFT:
 			case KeyEvent.VK_RIGHT:
-				if (!world.isPaused() && !world.isGameOver()) { // Ensure player can't move if game is over
+				if (!world.isPaused() && !world.isGameOver()) {
 					world.movePlayer(Direction.fromKeyCode(e.getKeyCode()));
 				}
 				break;
@@ -113,6 +132,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 					if (newPausedState) {
 						enemyMoveTimer.stop();
 						inGameMenu.setSelectedDifficulty(world.getDifficulty().name());
+						gameOverRestartButton.setVisible(false); // Hide game over button if pausing
 					} else {
 						enemyMoveTimer.start();
 					}
@@ -141,26 +161,22 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	}
 
 	private void handleRestartGame() {
-		// When restarting, use the difficulty currently set in the world (if game over)
-		// or the one selected in the menu (if menu was open)
 		String selectedDifficultyStr = inGameMenu.isVisible() ? inGameMenu.getSelectedDifficulty() : world.getDifficulty().name();
 		Difficulty newDifficulty = Difficulty.valueOf(selectedDifficultyStr);
 
-		// Reset level to 1 when restarting the game from game over or restart menu
-		// (This ensures a fresh start for the level progression)
-		world.setCurrentLevel(1); // Direct access for simplicity, consider a public setter in World if preferred
-
-		world.restart(newDifficulty); // Restart the world with chosen difficulty
+		world.setCurrentLevel(1); // Reset level to 1
+		world.restart(newDifficulty);
 
 		enemyMoveTimer.stop();
 		enemyMoveTimer.setInitialDelay((int) world.getEnemyMoveIntervalMillis());
 		enemyMoveTimer.setDelay((int) world.getEnemyMoveIntervalMillis());
 		enemyMoveTimer.start();
-		world.setPaused(false); // Ensure game is unpaused
+		world.setPaused(false);
 		inGameMenu.setVisible(false); // Hide in-game menu
-		pack(); // Adjust frame size if world size changed
-		requestFocusInWindow(); // Restore focus to game
-		graphicView.repaint(); // Repaint game view
+		gameOverRestartButton.setVisible(false); // NEW: Hide game over restart button on restart
+		pack();
+		requestFocusInWindow();
+		graphicView.repaint();
 	}
 
 	private void handleExitGame() {
@@ -171,7 +187,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 		String selectedDifficultyStr = inGameMenu.getSelectedDifficulty();
 		Difficulty newDifficulty = Difficulty.valueOf(selectedDifficultyStr);
 		if (world.getDifficulty() != newDifficulty) {
-			handleRestartGame(); // Restart the game with the new difficulty
+			handleRestartGame();
 		}
 	}
 

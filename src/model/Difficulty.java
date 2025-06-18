@@ -5,8 +5,8 @@ import java.util.Random;
 public enum Difficulty {
     // baseSize, sizeVariance, wallPercentage, enemyPercentage, enemyMoveIntervalMillis
     EASY(25, 2, 0.20, 0.0, 1500),
-    MEDIUM(35, 3, 0.30, 0.05, 1000),
-    HARD(45, 4, 0.35, 0.08, 500);
+    MEDIUM(35, 3, 0.30, 0.02, 1000),
+    HARD(45, 4, 0.35, 0.03, 500);
 
     private final int baseSize;
     private final int sizeVariance;
