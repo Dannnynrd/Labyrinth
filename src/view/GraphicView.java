@@ -1,3 +1,4 @@
+// src/view/GraphicView.java
 package view;
 
 import java.awt.*;
@@ -29,21 +30,12 @@ public class GraphicView extends JPanel implements View {
 	private BufferedImage enemyImage;
 	private BufferedImage endImage;
 	private BufferedImage floorImage; // For the walkable path/background
-
-	// REMOVED: private JButton restartButton;
+	private BufferedImage powerupImage; // NEW: For power-up image
 
 	public GraphicView(Dimension fieldDimension) {
 		this.fieldDimension = fieldDimension;
 		loadImages(); // Load images when the view is created
-
-		// REMOVED: Restart Button initialization and adding it to this panel
-		// setLayout(null); // REMOVED: no longer needed for button positioning
 	}
-
-	// REMOVED: Method to set the controller as the action listener for the restart button
-	// public void setRestartButtonListener(ActionListener listener) {
-	//     restartButton.addActionListener(listener);
-	// }
 
 	// load the images
 	private void loadImages() {
@@ -53,6 +45,7 @@ public class GraphicView extends JPanel implements View {
 			enemyImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/enemy.png")));
 			endImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/end.jpg")));
 			floorImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/floor.jpg")));
+			powerupImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/powerup.png"))); // NEW: Load power-up image
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.err.println("Could not load images! Using default colors.");
@@ -61,6 +54,7 @@ public class GraphicView extends JPanel implements View {
 			enemyImage = null;
 			endImage = null;
 			floorImage = null;
+			powerupImage = null; // NEW: Set to null if loading fails
 		}
 	}
 
@@ -109,6 +103,15 @@ public class GraphicView extends JPanel implements View {
 							g.fillRect(screenX, screenY, fieldDimension.width, fieldDimension.height);
 						}
 					}
+					// NEW: Draw power-ups
+					if (world.isPowerupAt(worldX, worldY)) {
+						if (powerupImage != null) {
+							g.drawImage(powerupImage, screenX, screenY, fieldDimension.width, fieldDimension.height, null);
+						} else {
+							g.setColor(Color.GREEN); // Default color for power-up if image not loaded
+							g.fillOval(screenX + fieldDimension.width/4, screenY + fieldDimension.height/4, fieldDimension.width/2, fieldDimension.height/2);
+						}
+					}
 					if (world.isEnemyAt(worldX, worldY)) {
 						if (enemyImage != null) {
 							g.drawImage(enemyImage, screenX, screenY, fieldDimension.width, fieldDimension.height, null);
@@ -146,6 +149,10 @@ public class GraphicView extends JPanel implements View {
 			g.setFont(new Font("Arial", Font.BOLD, 20));
 			String levelText = "Level: " + world.getCurrentLevel();
 			g.drawString(levelText, 10, 25); // Top-left corner
+
+			// Draw player health
+			String healthText = "Health: " + world.getPlayerHealth();
+			g.drawString(healthText, 10, 75); // Positioned below level and goal
 		}
 
 
@@ -172,7 +179,11 @@ public class GraphicView extends JPanel implements View {
 			g.fillRect(0, 0, getWidth(), getHeight());
 
 		} else {
-
+			// Draw direction to end only when not game over and not paused
+			g.setColor(Color.YELLOW); // Choose a color that stands out
+			g.setFont(new Font("Arial", Font.BOLD, 20));
+			String directionText = "Goal: " + world.getDirectionToEnd();
+			g.drawString(directionText, 10, 50); // Positioned below Level
 		}
 	}
 

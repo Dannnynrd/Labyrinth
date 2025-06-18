@@ -1,3 +1,4 @@
+// src/controller/Controller.java
 package controller;
 
 import java.awt.*;
@@ -30,7 +31,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	private JLayeredPane layeredPane;
 	private GraphicView graphicView;
 
-	private JButton gameOverRestartButton; // NEW: Declare the restart button for game over screen
+	private JButton gameOverRestartButton; // Declare the restart button for game over screen
 
 	/**
 	 * Creates a new instance.
@@ -62,7 +63,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 
 		layeredPane.add(inGameMenu, JLayeredPane.PALETTE_LAYER); // InGameMenu on a higher layer
 
-		// NEW: Initialize and add the Game Over Restart Button
+		// Initialize and add the Game Over Restart Button
 		gameOverRestartButton = new JButton("Restart Game");
 		gameOverRestartButton.setFont(new Font("Arial", Font.BOLD, 24));
 		gameOverRestartButton.setBackground(new Color(70, 130, 180)); // SteelBlue
@@ -84,7 +85,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 			if (world.isGameOver()) {
 				enemyMoveTimer.stop();
 				// Show the restart button when game is over
-				gameOverRestartButton.setVisible(true); // NEW
+				gameOverRestartButton.setVisible(true);
 			}
 		});
 		enemyMoveTimer.start();
@@ -98,7 +99,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 			}
 		});
 
-		// NEW: Add action listener for the game over restart button
+		// Add action listener for the game over restart button
 		gameOverRestartButton.addActionListener(e -> handleRestartGame());
 
 		addKeyListener(this);
@@ -165,7 +166,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 		Difficulty newDifficulty = Difficulty.valueOf(selectedDifficultyStr);
 
 		world.setCurrentLevel(1); // Reset level to 1
-		world.restart(newDifficulty);
+		world.restart(newDifficulty, true); // Corrected: Pass 'true' to reset health on explicit restart
 
 		enemyMoveTimer.stop();
 		enemyMoveTimer.setInitialDelay((int) world.getEnemyMoveIntervalMillis());
@@ -173,7 +174,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 		enemyMoveTimer.start();
 		world.setPaused(false);
 		inGameMenu.setVisible(false); // Hide in-game menu
-		gameOverRestartButton.setVisible(false); // NEW: Hide game over restart button on restart
+		gameOverRestartButton.setVisible(false); // Hide game over restart button on restart
 		pack();
 		requestFocusInWindow();
 		graphicView.repaint();
