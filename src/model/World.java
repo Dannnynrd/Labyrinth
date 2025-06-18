@@ -30,6 +30,7 @@ public class World {
 
 	private final Difficulty difficulty;
 
+	private boolean isPaused = false;
 
 
 	/** End Block */
@@ -107,7 +108,13 @@ public class World {
 
 	///////////////////////////////////////////////////////////////////////////
 	// Getters and Setters
-
+	public boolean isPaused() {
+		return isPaused;
+	}
+	public void setPaused(boolean paused) {
+		isPaused = paused;
+		updateViews();
+	}
 	/**
 	 * Returns the width of the world.
 	 *

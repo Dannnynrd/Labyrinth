@@ -84,11 +84,17 @@ public class GraphicView extends JPanel implements View {
 					}
 				} else { // When User sees out of the world
 
-					g.setColor(Color.DARK_GRAY);
+
+					g.setColor(Color.BLACK);
 					g.fillRect(screenX, screenY, fieldDimension.width, fieldDimension.height);
 
-					g.setColor(new Color(110, 110, 110));
-					g.fillRect(screenX + 2, screenY + 2, fieldDimension.width - 4, fieldDimension.height - 4);
+					g.setColor(Color.WHITE);
+					if ((worldX * worldX + worldY * worldY) % 31 == 0) {
+						g.fillRect(screenX + 8, screenY + 8, 3, 3);
+					}
+					if ((worldX * 5 + worldY * 3) % 17 == 0) {
+						g.fillOval(screenX + 18, screenY + 15, 2, 2);
+					}
 				}
 			}
 		}
