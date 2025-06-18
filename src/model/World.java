@@ -28,10 +28,11 @@ public class World {
 	/** Game over (True / False) */
 	private boolean gameOver;
 
-	private Difficulty difficulty; // REMOVED FINAL, now can be changed
+	private Difficulty difficulty;
 
 	private boolean isPaused = false;
 
+	private int currentLevel; // Field to track the current level
 
 	/** End Block */
 	private int endX = 0;
@@ -46,6 +47,7 @@ public class World {
 	public World(Difficulty difficulty) {
 		this.difficulty = difficulty;
 		this.enemies = new ArrayList<>();
+		this.currentLevel = 1; // Initialize level to 1
 
 		restart(difficulty); // Call restart with initial difficulty
 	}
@@ -53,12 +55,16 @@ public class World {
 	// Modified restart method to accept a new difficulty
 	public void restart(Difficulty newDifficulty) {
 		this.difficulty = newDifficulty; // Update the world's difficulty
-		// Set parameters from the difficulty enum
-		this.width = difficulty.generateRandomSize();
-		this.height = difficulty.generateRandomSize();
+		// Reset game over status
+		this.gameOver = false;
+		// Reset paused status
+		this.isPaused = false;
+
+		// Use scaled dimensions based on current level
+		this.width = difficulty.getScaledWorldSize(currentLevel); // MODIFIED
+		this.height = difficulty.getScaledWorldSize(currentLevel); // MODIFIED
 		this.walls = new boolean[width][height]; // Initialize the walls array here
 
-		this.gameOver = false;
 		this.enemies.clear();
 
 		for (int i = 0; i < height; i++) {
@@ -76,8 +82,8 @@ public class World {
 			this.endY = rand.nextInt(height);
 		} while (this.endX == this.playerX && this.endY == this.playerY);
 
-		// Use the wall percentage from the enum
-		int numberOfWalls = (int) (width * height * difficulty.getWallPercentage());
+		// Use the scaled wall percentage from the enum
+		int numberOfWalls = (int) (width * height * difficulty.getScaledWallPercentage(currentLevel)); // MODIFIED
 		for (int i = 0; i < numberOfWalls; i++) {
 			int wallX = rand.nextInt(width);
 			int wallY = rand.nextInt(height);
@@ -88,8 +94,8 @@ public class World {
 			}
 		}
 
-		// Use the enemy percentage from the enum
-		int numberOfEnemies = (int) (width * height * difficulty.getEnemyPercentage());
+		// Use the scaled enemy percentage from the enum
+		int numberOfEnemies = (int) (width * height * difficulty.getScaledEnemyPercentage(currentLevel)); // MODIFIED
 		for (int i = 0; i < numberOfEnemies; i++) {
 			int enemyX, enemyY;
 			boolean isWall, isPlayer, isEnd;
@@ -103,10 +109,10 @@ public class World {
 			enemies.add(new Point(enemyX, enemyY));
 		}
 
-		// Cheks if user is on an Enemy
+		// Checks if user is on an Enemy at start
 		for (Point enemy : enemies) {
 			if (enemy.x == playerX && enemy.y == playerY) {
-				this.gameOver = true; // Spieler startet auf einem Gegner, Spiel vorbei
+				this.gameOver = true; // Player starts on an enemy, game over
 				break;
 			}
 		}
@@ -160,8 +166,6 @@ public class World {
 		playerX = Math.max(0, playerX);
 		playerX = Math.min(getWidth() - 1, playerX);
 		this.playerX = playerX;
-
-		// updateViews(); // updateViews wird in movePlayer() aufgerufen
 	}
 
 	/**
@@ -182,8 +186,6 @@ public class World {
 		playerY = Math.max(0, playerY);
 		playerY = Math.min(getHeight() - 1, playerY);
 		this.playerY = playerY;
-
-		// updateViews(); // updateViews wird in movePlayer() aufgerufen
 	}
 
 	public int getEndX() {
@@ -207,9 +209,15 @@ public class World {
 		return false;
 	}
 
-	// NEU: Getter für das Gegner-Bewegungsintervall aus Difficulty
-	public long getEnemyMoveIntervalMillis() {
-		return difficulty.getEnemyMoveIntervalMillis();
+	// Getter for current level
+	public int getCurrentLevel() {
+		return currentLevel;
+	}
+
+	// NEU: Getter für das Gegner-Bewegungsintervall aus Difficulty, NOW SCALED
+
+	public long getEnemyMoveIntervalMillis() { // Override added for clarity, though not strictly necessary
+		return difficulty.getScaledEnemyMoveIntervalMillis(currentLevel); // MODIFIED
 	}
 
 	// Getter for current difficulty
@@ -227,21 +235,25 @@ public class World {
 	 */
 
 	public void movePlayer(Direction direction) {
-		if (isGameOver() || isPaused()) { // NEU: Spieler kann sich nicht bewegen, wenn pausiert
+		if (isGameOver() || isPaused()) {
 			return;
 		}
-		// The direction tells us exactly how much we need to move along
-		// every direction
 		int newPlayerX = getPlayerX() + direction.deltaX;
 		int newPlayerY = getPlayerY() + direction.deltaY;
-		// Checks whether the Player is moving Towards a wall if there is a wall the player cant move to its direction
+
 		if (!isWall(newPlayerX, newPlayerY)) {
 			setPlayerX(newPlayerX);
 			setPlayerY(newPlayerY);
 
+			// NEW: Check if player reached the end point
+			if (playerX == endX && playerY == endY) {
+				currentLevel++; // Increment level
+				restart(this.difficulty); // Restart the level with current difficulty settings
+				return; // Exit method, a new level has started
+			}
+
 			if(isEnemyAt(getPlayerX(),getPlayerY())){
 				this.gameOver = true;
-				// updateViews(); // wird von moveEnemies aufgerufen, oder im Timer-Callback
 			}
 		}
 		updateViews(); // Update views after player move
