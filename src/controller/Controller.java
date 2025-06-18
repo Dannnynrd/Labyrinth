@@ -12,7 +12,7 @@ import javax.swing.*;
 import javax.swing.Timer;
 
 import model.Direction;
-import model.Difficulty; // Import Difficulty
+import model.Difficulty;
 import model.World;
 import view.GraphicView;
 import view.InGameMenu;
@@ -62,12 +62,6 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 
 		this.add(layeredPane, BorderLayout.CENTER);
 
-
-
-
-
-
-
 		enemyMoveTimer = new Timer((int) world.getEnemyMoveIntervalMillis(), e -> {
 			world.moveEnemies();
 			if (world.isGameOver()) {
@@ -79,14 +73,14 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 		inGameMenu.addResumeButtonListener(e -> handleResumeGame());
 		inGameMenu.addRestartButtonListener(e -> handleRestartGame());
 		inGameMenu.addExitButtonListener(e -> handleExitGame());
-
-		// Add listener for difficulty combo box
 		inGameMenu.addDifficultyComboBoxListener(e -> {
-			if ("comboBoxChanged".equals(e.getActionCommand())) { // Check for combo box change event
+			if ("comboBoxChanged".equals(e.getActionCommand())) {
 				handleDifficultyChange();
 			}
 		});
 
+		// Set the controller as the action listener for the GraphicView's restart button
+		graphicView.setRestartButtonListener(e -> handleRestartGame()); // IMPORTANT: This links the game over restart button
 
 		addKeyListener(this);
 		addMouseListener(this);
@@ -107,7 +101,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 			case KeyEvent.VK_DOWN:
 			case KeyEvent.VK_LEFT:
 			case KeyEvent.VK_RIGHT:
-				if (!world.isPaused()) {
+				if (!world.isPaused() && !world.isGameOver()) { // Ensure player can't move if game is over
 					world.movePlayer(Direction.fromKeyCode(e.getKeyCode()));
 				}
 				break;
@@ -118,7 +112,6 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 					inGameMenu.setVisible(newPausedState);
 					if (newPausedState) {
 						enemyMoveTimer.stop();
-						// When showing the menu, update the selected difficulty in the dropdown
 						inGameMenu.setSelectedDifficulty(world.getDifficulty().name());
 					} else {
 						enemyMoveTimer.start();
@@ -136,7 +129,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-
+		// This method is now empty as the bottom restart button was removed
 	}
 
 	private void handleResumeGame() {
@@ -148,32 +141,35 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	}
 
 	private void handleRestartGame() {
-		// Get the currently selected difficulty from the menu for restart
-		String selectedDifficultyStr = inGameMenu.getSelectedDifficulty();
+		// When restarting, use the difficulty currently set in the world (if game over)
+		// or the one selected in the menu (if menu was open)
+		String selectedDifficultyStr = inGameMenu.isVisible() ? inGameMenu.getSelectedDifficulty() : world.getDifficulty().name();
 		Difficulty newDifficulty = Difficulty.valueOf(selectedDifficultyStr);
-		world.restart(newDifficulty); // Restart with the selected difficulty
+
+		// Reset level to 1 when restarting the game from game over or restart menu
+		// (This ensures a fresh start for the level progression)
+		world.setCurrentLevel(1); // Direct access for simplicity, consider a public setter in World if preferred
+
+		world.restart(newDifficulty); // Restart the world with chosen difficulty
 
 		enemyMoveTimer.stop();
 		enemyMoveTimer.setInitialDelay((int) world.getEnemyMoveIntervalMillis());
 		enemyMoveTimer.setDelay((int) world.getEnemyMoveIntervalMillis());
 		enemyMoveTimer.start();
-		world.setPaused(false);
-		inGameMenu.setVisible(false);
-		pack();
-		requestFocusInWindow();
-		graphicView.repaint();
+		world.setPaused(false); // Ensure game is unpaused
+		inGameMenu.setVisible(false); // Hide in-game menu
+		pack(); // Adjust frame size if world size changed
+		requestFocusInWindow(); // Restore focus to game
+		graphicView.repaint(); // Repaint game view
 	}
 
 	private void handleExitGame() {
 		System.exit(0);
 	}
 
-	// New method to handle difficulty change from dropdown
 	private void handleDifficultyChange() {
 		String selectedDifficultyStr = inGameMenu.getSelectedDifficulty();
 		Difficulty newDifficulty = Difficulty.valueOf(selectedDifficultyStr);
-		// If the difficulty changes while paused, the user might expect a restart
-		// You can add a confirmation dialog here if desired.
 		if (world.getDifficulty() != newDifficulty) {
 			handleRestartGame(); // Restart the game with the new difficulty
 		}

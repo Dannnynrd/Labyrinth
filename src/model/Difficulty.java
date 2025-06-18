@@ -15,7 +15,7 @@ public enum Difficulty {
     private final long enemyMoveIntervalMillis;
     private static final Random rand = new Random();
 
-    // Scaling Constants
+    // Scaling Constants (you can adjust these values)
     private static final int LEVEL_SIZE_INCREMENT = 2; // World size increases by this much per level
     private static final double LEVEL_WALL_PERCENTAGE_INCREMENT = 0.005; // Wall % increases by 0.5% per level
     private static final double LEVEL_ENEMY_PERCENTAGE_INCREMENT = 0.003; // Enemy % increases by 0.3% per level
@@ -52,7 +52,7 @@ public enum Difficulty {
 
     // Scaled methods based on level
     public int getScaledWorldSize(int level) {
-        // Size increases with level, ensuring it's always an even number for grid consistency
+        // Size increases with level, ensuring it's always an even number for grid consistency (optional)
         int scaledSize = baseSize + (level - 1) * LEVEL_SIZE_INCREMENT;
         return scaledSize + rand.nextInt(sizeVariance + 1) * 2; // Still add random variance
     }

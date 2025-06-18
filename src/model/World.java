@@ -61,8 +61,8 @@ public class World {
 		this.isPaused = false;
 
 		// Use scaled dimensions based on current level
-		this.width = difficulty.getScaledWorldSize(currentLevel); // MODIFIED
-		this.height = difficulty.getScaledWorldSize(currentLevel); // MODIFIED
+		this.width = difficulty.getScaledWorldSize(currentLevel);
+		this.height = difficulty.getScaledWorldSize(currentLevel);
 		this.walls = new boolean[width][height]; // Initialize the walls array here
 
 		this.enemies.clear();
@@ -83,7 +83,7 @@ public class World {
 		} while (this.endX == this.playerX && this.endY == this.playerY);
 
 		// Use the scaled wall percentage from the enum
-		int numberOfWalls = (int) (width * height * difficulty.getScaledWallPercentage(currentLevel)); // MODIFIED
+		int numberOfWalls = (int) (width * height * difficulty.getScaledWallPercentage(currentLevel));
 		for (int i = 0; i < numberOfWalls; i++) {
 			int wallX = rand.nextInt(width);
 			int wallY = rand.nextInt(height);
@@ -95,7 +95,7 @@ public class World {
 		}
 
 		// Use the scaled enemy percentage from the enum
-		int numberOfEnemies = (int) (width * height * difficulty.getScaledEnemyPercentage(currentLevel)); // MODIFIED
+		int numberOfEnemies = (int) (width * height * difficulty.getScaledEnemyPercentage(currentLevel));
 		for (int i = 0; i < numberOfEnemies; i++) {
 			int enemyX, enemyY;
 			boolean isWall, isPlayer, isEnd;
@@ -214,17 +214,17 @@ public class World {
 		return currentLevel;
 	}
 
-	// NEU: Getter für das Gegner-Bewegungsintervall aus Difficulty, NOW SCALED
-
-	public long getEnemyMoveIntervalMillis() { // Override added for clarity, though not strictly necessary
-		return difficulty.getScaledEnemyMoveIntervalMillis(currentLevel); // MODIFIED
+	public long getEnemyMoveIntervalMillis() {
+		return difficulty.getScaledEnemyMoveIntervalMillis(currentLevel);
 	}
 
 	// Getter for current difficulty
 	public Difficulty getDifficulty() {
 		return difficulty;
 	}
-
+	public void setCurrentLevel(int currentLevel) {
+		this.currentLevel = currentLevel;
+	}
 	///////////////////////////////////////////////////////////////////////////
 	// Player Management
 
@@ -245,7 +245,7 @@ public class World {
 			setPlayerX(newPlayerX);
 			setPlayerY(newPlayerY);
 
-			// NEW: Check if player reached the end point
+			// Check if player reached the end point
 			if (playerX == endX && playerY == endY) {
 				currentLevel++; // Increment level
 				restart(this.difficulty); // Restart the level with current difficulty settings
@@ -259,7 +259,7 @@ public class World {
 		updateViews(); // Update views after player move
 	}
 
-	// NEU: Methode zum Bewegen aller Gegner
+	// Methode zum Bewegen aller Gegner
 	public void moveEnemies() {
 		if (isPaused() || isGameOver()) {
 			return;
@@ -274,8 +274,8 @@ public class World {
 			int targetX = playerX;
 			int targetY = playerY;
 
-			int deltaX = Integer.compare(targetX, currentEnemyX); // -1, 0, or 1
-			int deltaY = Integer.compare(targetY, currentEnemyY); // -1, 0, or 1
+			int deltaX = Integer.compare(targetX, currentEnemyX);
+			int deltaY = Integer.compare(targetY, currentEnemyY);
 
 			boolean movedThisTurn = false;
 
