@@ -28,6 +28,9 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	private World world;
 	private final Dimension fieldDimensions;
 	private Timer enemyMoveTimer;
+	private Timer gameTimer; // NEW: Timer for general game updates (power-up durations)
+	private long lastGameUpdateTime; // NEW: To calculate delta time for timers
+
 	private InGameMenu inGameMenu;
 	private JLayeredPane layeredPane;
 	private GraphicView graphicView;
@@ -103,6 +106,35 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 			}
 		});
 
+		// NEW: Initialize gameTimer for power-up durations
+		gameTimer = new Timer(50, e -> { // Update every 50 milliseconds
+			long currentTime = System.currentTimeMillis();
+			long deltaTime = currentTime - lastGameUpdateTime;
+			lastGameUpdateTime = currentTime;
+
+			world.decreaseInvincibilityTimer(deltaTime);
+			// Only move enemies if they are not frozen
+			if (!world.areEnemiesFrozen()) {
+				world.decreaseEnemyFreezeTimer(deltaTime); // Decrease only if already frozen
+			} else {
+				// If enemies are frozen, continue to decrease the freeze timer
+				world.decreaseEnemyFreezeTimer(deltaTime);
+				if (!world.areEnemiesFrozen()) { // If they just unfroze
+					enemyMoveTimer.start(); // Restart enemy movement
+				}
+			}
+
+			// If enemies become frozen, stop their movement
+			if (world.areEnemiesFrozen() && enemyMoveTimer.isRunning()) {
+				enemyMoveTimer.stop();
+			} else if (!world.areEnemiesFrozen() && !enemyMoveTimer.isRunning() && !world.isPaused() && !world.isGameOver()) {
+				enemyMoveTimer.start();
+			}
+
+			graphicView.repaint(); // Repaint to reflect timer-based changes (e.g., power-up status)
+		});
+
+
 		inGameMenu.addResumeButtonListener(e -> handleResumeGame());
 		inGameMenu.addRestartButtonListener(e -> handleRestartGame());
 		inGameMenu.addExitButtonListener(e -> handleExitGame());
@@ -134,6 +166,11 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 		enemyMoveTimer.setInitialDelay((int) world.getEnemyMoveIntervalMillis());
 		enemyMoveTimer.setDelay((int) world.getEnemyMoveIntervalMillis());
 		enemyMoveTimer.start();
+
+		// NEW: Start game timer
+		lastGameUpdateTime = System.currentTimeMillis();
+		gameTimer.start();
+
 		requestFocusInWindow();
 		graphicView.repaint();
 	}
@@ -163,10 +200,13 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 					inGameMenu.setVisible(newPausedState);
 					if (newPausedState) {
 						enemyMoveTimer.stop();
+						gameTimer.stop(); // NEW: Stop game timer when paused
 						inGameMenu.setSelectedDifficulty(world.getDifficulty().name());
 						gameOverRestartButton.setVisible(false);
 					} else {
 						enemyMoveTimer.start();
+						lastGameUpdateTime = System.currentTimeMillis(); // NEW: Reset last update time
+						gameTimer.start(); // NEW: Start game timer when resumed
 					}
 					graphicView.repaint();
 				}
@@ -183,6 +223,8 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	private void handleResumeGame() {
 		world.setPaused(false);
 		enemyMoveTimer.start();
+		lastGameUpdateTime = System.currentTimeMillis(); // NEW: Reset last update time
+		gameTimer.start(); // NEW: Start game timer
 		inGameMenu.setVisible(false);
 		requestFocusInWindow();
 		graphicView.repaint();
@@ -196,9 +238,14 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 		this.world.registerView(graphicView);
 
 		enemyMoveTimer.stop();
+		gameTimer.stop(); // NEW: Stop game timer
 		enemyMoveTimer.setInitialDelay((int) world.getEnemyMoveIntervalMillis());
 		enemyMoveTimer.setDelay((int) world.getEnemyMoveIntervalMillis());
 		enemyMoveTimer.start();
+
+		lastGameUpdateTime = System.currentTimeMillis(); // NEW: Reset last update time
+		gameTimer.start(); // NEW: Start game timer
+
 		world.setPaused(false);
 		inGameMenu.setVisible(false);
 		gameOverRestartButton.setVisible(false);

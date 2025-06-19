@@ -1,13 +1,14 @@
 // src/model/World.java
 package model;
 
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collections; // For shuffling
-import java.util.Random;
-import java.awt.Point;
 import java.util.List;
+import java.util.Random;
 import java.util.Stack; // For DFS
 import view.View;
+
 
 /**
  * The world is our model. It saves the bare minimum of information required to
@@ -37,14 +38,24 @@ public class World {
 
 	private int currentLevel; // Field to track the current level
 	private int playerHealth; // Player health
+	private static final int MAX_PLAYER_HEALTH = 5; // Maximum health for the player
+
+	// NEW: Power-up states and durations
+	private boolean isInvincible = false;
+	private long invincibilityRemainingTime = 0; // Milliseconds
+	private static final long MAX_INVINCIBILITY_DURATION_MILLIS = 5000; // 5 seconds
+
+	private boolean areEnemiesFrozen = false;
+	private long enemyFreezeRemainingTime = 0; // Milliseconds
+	private static final long MAX_ENEMY_FREEZE_DURATION_MILLIS = 7000; // 7 seconds
 
 	/** End Block */
 	private int endX = 0;
 	private int endY = 0;
 
-	// NEW: List to store active health power-up locations
-	private final List<Point> healthPowerups;
-	private static final int INITIAL_HEALTH_POWERUPS = 3; // Number of health power-ups to spawn per level
+	// NEW: List to store active power-up locations and their types
+	private final List<Powerup> powerups;
+	private static final int INITIAL_POWERUPS_PER_LEVEL = 3; // Number of power-ups to spawn per level (health/special)
 
 	/** Set of views registered to be notified of world updates. */
 	private final ArrayList<View> views = new ArrayList<>();
@@ -56,9 +67,9 @@ public class World {
 	public World(Difficulty difficulty) {
 		this.difficulty = difficulty;
 		this.enemies = new ArrayList<>();
-		this.healthPowerups = new ArrayList<>(); // Initialize power-ups list
+		this.powerups = new ArrayList<>(); // Initialize power-ups list with custom Powerup objects
 		this.currentLevel = 1; // Initialize level to 1
-		this.playerHealth = 3; // Initialize player health
+		this.playerHealth = MAX_PLAYER_HEALTH; // Initialize player health to max
 
 		restart(difficulty, true); // Call restart with initial difficulty, resetting health
 	}
@@ -76,9 +87,14 @@ public class World {
 		// Reset paused status
 		this.isPaused = false;
 		if (resetPlayerHealth) { // Only reset health if explicitly requested
-			this.playerHealth = 3; // Reset player health on restart
+			this.playerHealth = MAX_PLAYER_HEALTH; // Reset player health on restart
 		}
 
+		// Reset power-up states
+		this.isInvincible = false;
+		this.invincibilityRemainingTime = 0;
+		this.areEnemiesFrozen = false;
+		this.enemyFreezeRemainingTime = 0;
 
 		// Use scaled dimensions based on current level.
 		// Ensure dimensions are odd for maze generation, as common algorithms prefer it for grid consistency (path at odd, walls at even or vice versa).
@@ -91,7 +107,7 @@ public class World {
 		this.walls = new boolean[width][height]; // Initialize the walls array here
 
 		this.enemies.clear();
-		this.healthPowerups.clear(); // Clear power-ups on restart
+		this.powerups.clear(); // Clear power-ups on restart
 
 		// Initialize all cells as walls for maze generation
 		for (int i = 0; i < height; i++) {
@@ -141,10 +157,19 @@ public class World {
 			enemies.add(new Point(enemyX, enemyY));
 		}
 
-		// Place health power-ups
-		for (int i = 0; i < INITIAL_HEALTH_POWERUPS; i++) {
+		// Place power-ups
+		for (int i = 0; i < INITIAL_POWERUPS_PER_LEVEL; i++) {
 			int powerupX, powerupY;
-			boolean isWall, isPlayer, isEnd, isEnemy, isPowerup;
+			boolean isWall, isPlayer, isEnd, isEnemy, isAnotherPowerup;
+			PowerupType type;
+			if (i == 0) { // First power-up is always health
+				type = PowerupType.HEALTH;
+			} else if (i == 1) { // Second power-up is invincibility
+				type = PowerupType.INVINCIBILITY;
+			} else { // Third power-up is enemy freeze
+				type = PowerupType.FREEZE_ENEMIES;
+			}
+
 			do {
 				powerupX = rand.nextInt(width);
 				powerupY = rand.nextInt(height);
@@ -152,20 +177,17 @@ public class World {
 				isPlayer = (powerupX == this.playerX && powerupY == this.playerY);
 				isEnd = (powerupX == this.endX && powerupY == this.endY);
 				isEnemy = isEnemyAt(powerupX, powerupY);
-				isPowerup = isPowerupAt(powerupX, powerupY); // Check against other powerup locations
-			} while (isWall || isPlayer || isEnd || isEnemy || isPowerup); // Ensure powerup is not on a wall, player, end, enemy, or another powerup
-			healthPowerups.add(new Point(powerupX, powerupY));
+				isAnotherPowerup = isPowerupAt(powerupX, powerupY); // Check against other powerup locations
+			} while (isWall || isPlayer || isEnd || isEnemy || isAnotherPowerup); // Ensure powerup is not on a wall, player, end, enemy, or another powerup
+			powerups.add(new Powerup(powerupX, powerupY, type));
 		}
 
+
 		// Checks if player starts on an enemy
-		// Instead of game over, lose health
-		for (Point enemy : enemies) {
-			if (enemy.x == playerX && enemy.y == playerY) {
-				playerHealth--;
-				if (playerHealth <= 0) {
-					this.gameOver = true; // Player starts on an enemy and has no health left, game over
-				}
-				break;
+		if (isEnemyAt(playerX, playerY) && !isInvincible) {
+			playerHealth--;
+			if (playerHealth <= 0) {
+				this.gameOver = true; // Player starts on an enemy and has no health left, game over
 			}
 		}
 
@@ -354,9 +376,9 @@ public class World {
 		return enemies;
 	}
 
-	// Getter for health power-ups
-	public List<Point> getHealthPowerups() {
-		return healthPowerups;
+	// Getter for all power-ups
+	public List<Powerup> getPowerups() {
+		return powerups;
 	}
 
 	public boolean isGameOver() {return gameOver;}
@@ -364,6 +386,21 @@ public class World {
 	// Getter for player health
 	public int getPlayerHealth() {
 		return playerHealth;
+	}
+
+	// Getter for max player health
+	public int getMaxPlayerHealth() {
+		return MAX_PLAYER_HEALTH;
+	}
+
+	// Getter for invincibility status
+	public boolean isInvincible() {
+		return isInvincible;
+	}
+
+	// Getter for enemy freeze status
+	public boolean areEnemiesFrozen() {
+		return areEnemiesFrozen;
 	}
 
 	public boolean isEnemyAt(int x, int y) {
@@ -377,12 +414,22 @@ public class World {
 
 	// Check if a powerup is at the given coordinates
 	public boolean isPowerupAt(int x, int y) {
-		for (Point powerup : healthPowerups) {
+		for (Powerup powerup : powerups) {
 			if(powerup.x == x && powerup.y == y){
 				return true;
 			}
 		}
 		return false;
+	}
+
+	// Get a specific powerup by coordinates
+	public Powerup getPowerupAt(int x, int y) {
+		for (Powerup powerup : powerups) {
+			if(powerup.x == x && powerup.y == y){
+				return powerup;
+			}
+		}
+		return null;
 	}
 
 	// Getter for current level
@@ -401,6 +448,31 @@ public class World {
 	public void setCurrentLevel(int currentLevel) {
 		this.currentLevel = currentLevel;
 	}
+
+	// NEW: Methods to decrease power-up timers
+	public void decreaseInvincibilityTimer(long deltaTimeMillis) {
+		if (isInvincible) {
+			invincibilityRemainingTime -= deltaTimeMillis;
+			if (invincibilityRemainingTime <= 0) {
+				isInvincible = false;
+				invincibilityRemainingTime = 0;
+			}
+			updateViews();
+		}
+	}
+
+	public void decreaseEnemyFreezeTimer(long deltaTimeMillis) {
+		if (areEnemiesFrozen) {
+			enemyFreezeRemainingTime -= deltaTimeMillis;
+			if (enemyFreezeRemainingTime <= 0) {
+				areEnemiesFrozen = false;
+				enemyFreezeRemainingTime = 0;
+			}
+			updateViews();
+		}
+	}
+
+
 	///////////////////////////////////////////////////////////////////////////
 	// Player Management
 
@@ -422,16 +494,22 @@ public class World {
 			setPlayerY(newPlayerY);
 
 			// Check if player collected a power-up
-			Point collectedPowerup = null;
-			for (Point powerup : healthPowerups) {
-				if (playerX == powerup.x && playerY == powerup.y) {
-					playerHealth = Math.min(playerHealth + 1, 5); // Increase health, cap at 5 for example
-					collectedPowerup = powerup;
-					break;
-				}
-			}
+			Powerup collectedPowerup = getPowerupAt(playerX, playerY);
 			if (collectedPowerup != null) {
-				healthPowerups.remove(collectedPowerup);
+				switch (collectedPowerup.type) {
+					case HEALTH:
+						playerHealth = Math.min(playerHealth + 1, MAX_PLAYER_HEALTH);
+						break;
+					case INVINCIBILITY:
+						isInvincible = true;
+						invincibilityRemainingTime = MAX_INVINCIBILITY_DURATION_MILLIS;
+						break;
+					case FREEZE_ENEMIES:
+						areEnemiesFrozen = true;
+						enemyFreezeRemainingTime = MAX_ENEMY_FREEZE_DURATION_MILLIS;
+						break;
+				}
+				powerups.remove(collectedPowerup);
 			}
 
 			// Check if player reached the end point
@@ -441,8 +519,8 @@ public class World {
 				return; // Exit method, a new level has started
 			}
 
-			// If player encounters an enemy, lose health instead of immediate game over
-			if(isEnemyAt(getPlayerX(),getPlayerY())){
+			// If player encounters an enemy, lose health (unless invincible)
+			if(isEnemyAt(getPlayerX(),getPlayerY()) && !isInvincible){
 				playerHealth--;
 				if (playerHealth <= 0) {
 					this.gameOver = true;
@@ -456,7 +534,7 @@ public class World {
 	 * Moves all enemies towards the player, avoiding walls if possible.
 	 */
 	public void moveEnemies() {
-		if (isPaused() || isGameOver()) {
+		if (isPaused() || isGameOver() || areEnemiesFrozen) { // Enemies don't move if frozen
 			return;
 		}
 
@@ -507,13 +585,13 @@ public class World {
 				}
 			}
 
-			// Collision check after enemy moves - lose health instead of game over
-			if (enemy.x == playerX && enemy.y == playerY) {
+			// Collision check after enemy moves - lose health (unless invincible)
+			if (enemy.x == playerX && enemy.y == playerY && !isInvincible) {
 				playerHealth--;
 				if (playerHealth <= 0) {
 					this.gameOver = true;
 				}
-				break; // Game is over or health lost, no need to move other enemies
+				break; // Health lost, no need to move other enemies this cycle or check further
 			}
 		}
 		updateViews(); // Update views after all enemies moved

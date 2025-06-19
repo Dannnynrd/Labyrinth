@@ -10,6 +10,8 @@ import javax.swing.JPanel;
 
 
 import model.World;
+import model.Powerup; // Import the Powerup class
+import model.PowerupType; // Import the PowerupType enum
 
 /**
  * A graphical view of the world.
@@ -29,7 +31,10 @@ public class GraphicView extends JPanel implements View {
 	private BufferedImage enemyImage;
 	private BufferedImage endImage;
 	private BufferedImage floorImage; // For the walkable path/background
-	private BufferedImage powerupImage; // NEW: For power-up image
+	private BufferedImage healthPowerupImage; // NEW: For health power-up image
+	private BufferedImage invincibilityPowerupImage; // NEW: For invincibility power-up image
+	private BufferedImage freezePowerupImage; // NEW: For enemy freeze power-up image
+
 
 	public GraphicView(Dimension fieldDimension) {
 		this.fieldDimension = fieldDimension;
@@ -44,7 +49,10 @@ public class GraphicView extends JPanel implements View {
 			enemyImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/enemy.png")));
 			endImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/end2.png")));
 			floorImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/floor2.png")));
-			powerupImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/powerup.png"))); // NEW: Load power-up image
+			healthPowerupImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/powerup.png"))); // Using existing powerup.png for health
+			// Assuming new images exist for special power-ups, otherwise use default colors
+			invincibilityPowerupImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/powerupboost.png")));
+			freezePowerupImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/freeze.png")));
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.err.println("Could not load images! Using default colors.");
@@ -53,7 +61,9 @@ public class GraphicView extends JPanel implements View {
 			enemyImage = null;
 			endImage = null;
 			floorImage = null;
-			powerupImage = null; // NEW: Set to null if loading fails
+			healthPowerupImage = null;
+			invincibilityPowerupImage = null;
+			freezePowerupImage = null;
 		}
 	}
 
@@ -102,16 +112,41 @@ public class GraphicView extends JPanel implements View {
 							g.fillRect(screenX, screenY, fieldDimension.width, fieldDimension.height);
 						}
 					}
-					// NEW: Draw power-ups
-					if (world.isPowerupAt(worldX, worldY)) {
-						if (powerupImage != null) {
-							g.drawImage(powerupImage, screenX, screenY, fieldDimension.width, fieldDimension.height, null);
+					// NEW: Draw power-ups based on their type
+					Powerup currentPowerup = world.getPowerupAt(worldX, worldY);
+					if (currentPowerup != null) {
+						BufferedImage powerupDrawImage = null;
+						Color defaultColor = Color.MAGENTA; // Default for unknown type
+						switch (currentPowerup.type) {
+							case HEALTH:
+								powerupDrawImage = healthPowerupImage;
+								defaultColor = Color.GREEN;
+								break;
+							case INVINCIBILITY:
+								powerupDrawImage = invincibilityPowerupImage;
+								defaultColor = Color.YELLOW;
+								break;
+							case FREEZE_ENEMIES:
+								powerupDrawImage = freezePowerupImage;
+								defaultColor = Color.CYAN;
+								break;
+						}
+
+						if (powerupDrawImage != null) {
+							g.drawImage(powerupDrawImage, screenX, screenY, fieldDimension.width, fieldDimension.height, null);
 						} else {
-							g.setColor(Color.GREEN); // Default color for power-up if image not loaded
+							g.setColor(defaultColor);
 							g.fillOval(screenX + fieldDimension.width/4, screenY + fieldDimension.height/4, fieldDimension.width/2, fieldDimension.height/2);
 						}
 					}
+
 					if (world.isEnemyAt(worldX, worldY)) {
+						// NEW: Apply visual effect for frozen enemies
+						if (world.areEnemiesFrozen()) {
+							g.setColor(new Color(0, 200, 255, 150)); // Semi-transparent light blue overlay for frozen
+							g.fillRect(screenX, screenY, fieldDimension.width, fieldDimension.height);
+						}
+
 						if (enemyImage != null) {
 							g.drawImage(enemyImage, screenX, screenY, fieldDimension.width, fieldDimension.height, null);
 						} else {
@@ -120,6 +155,11 @@ public class GraphicView extends JPanel implements View {
 						}
 					}
 					if (worldX == world.getPlayerX() && worldY == world.getPlayerY()) {
+						// NEW: Apply visual effect for invincible player
+						if (world.isInvincible()) {
+							g.setColor(new Color(255, 255, 0, 100)); // Semi-transparent yellow overlay for invincibility
+							g.fillRect(screenX, screenY, fieldDimension.width, fieldDimension.height);
+						}
 						if (playerImage != null) {
 							g.drawImage(playerImage, screenX, screenY, fieldDimension.width, fieldDimension.height, null);
 						} else {
@@ -149,9 +189,30 @@ public class GraphicView extends JPanel implements View {
 			String levelText = "Level: " + world.getCurrentLevel();
 			g.drawString(levelText, 10, 25); // Top-left corner
 
-			// Draw player health
-			String healthText = "Health: " + world.getPlayerHealth();
-			g.drawString(healthText, 10, 75); // Positioned below level and goal
+			// NEW: Draw health bar
+			int healthBarX = 10;
+			int healthBarY = 40;
+			int healthBarWidth = 100;
+			int healthBarHeight = 15;
+			int healthSegmentWidth = healthBarWidth / world.getMaxPlayerHealth();
+
+			g.setColor(Color.RED); // Background for empty health
+			g.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+			g.setColor(Color.GREEN); // Current health
+			g.fillRect(healthBarX, healthBarY, world.getPlayerHealth() * healthSegmentWidth, healthBarHeight);
+
+			g.setColor(Color.WHITE); // Border for health bar
+			g.drawRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+			// Optionally, draw current health text on top of the bar or next to it
+			g.drawString("HP", healthBarX + healthBarWidth + 5, healthBarY + healthBarHeight - 2);
+
+			// Draw current health value as text
+			String healthValueText = world.getPlayerHealth() + "/" + world.getMaxPlayerHealth();
+			g.drawString(healthValueText, healthBarX + (healthBarWidth / 2) - (g.getFontMetrics().stringWidth(healthValueText) / 2), healthBarY + healthBarHeight - 2);
+
+
 		}
 
 
@@ -182,7 +243,7 @@ public class GraphicView extends JPanel implements View {
 			g.setColor(Color.YELLOW); // Choose a color that stands out
 			g.setFont(new Font("Arial", Font.BOLD, 20));
 			String directionText = "Goal: " + world.getDirectionToEnd();
-			g.drawString(directionText, 10, 50); // Positioned below Level
+			g.drawString(directionText, 10, 75); // Positioned below Level and Health Bar
 		}
 	}
 
