@@ -17,6 +17,7 @@ import model.Difficulty;
 import model.World;
 import view.GraphicView;
 import view.InGameMenu;
+import view.MainMenu;
 
 /**
  * Our controller listens for key events on the main window.
@@ -24,24 +25,25 @@ import view.InGameMenu;
 public class Controller extends JFrame implements KeyListener, ActionListener, MouseListener {
 
 	/** The world that is updated upon every key press. */
-	private final World world;
+	private World world;
 	private final Dimension fieldDimensions;
 	private Timer enemyMoveTimer;
 	private InGameMenu inGameMenu;
 	private JLayeredPane layeredPane;
 	private GraphicView graphicView;
+	private MainMenu mainMenu;
 
-	private JButton gameOverRestartButton; // Declare the restart button for game over screen
+	private JButton gameOverRestartButton;
 
 	/**
 	 * Creates a new instance.
 	 *
-	 * @param world the world to be updated whenever the player should move.
+	 * @param initialWorld the world to be updated whenever the player should move.
 	 * @param fieldDimensions the dimensions of each field in the graphical view.
 	 * @param graphicView the graphical view to be displayed and updated.
 	 */
-	public Controller(World world, Dimension fieldDimensions, GraphicView graphicView) {
-		this.world = world;
+	public Controller(World initialWorld, Dimension fieldDimensions, GraphicView graphicView) {
+		this.world = initialWorld;
 		this.fieldDimensions = fieldDimensions;
 		this.graphicView = graphicView;
 
@@ -50,45 +52,56 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 		layeredPane = new JLayeredPane();
 		layeredPane.setPreferredSize(graphicView.getPreferredSize());
 
+		// Set the background of the layered pane to black and make it opaque
+		layeredPane.setBackground(Color.BLACK);
+		layeredPane.setOpaque(true);
+
 		this.graphicView.setBounds(0, 0, graphicView.getPreferredSize().width, graphicView.getPreferredSize().height);
 		layeredPane.add(this.graphicView, JLayeredPane.DEFAULT_LAYER);
+		this.graphicView.setVisible(false); // Initially hide GraphicView, show MainMenu instead
 
-		inGameMenu = new InGameMenu();
-		int menuWidth = inGameMenu.getPreferredSize().width;
-		int menuHeight = inGameMenu.getPreferredSize().height;
+		mainMenu = new MainMenu();
+		int menuWidth = mainMenu.getPreferredSize().width;
+		int menuHeight = mainMenu.getPreferredSize().height;
 		int x = (graphicView.getPreferredSize().width - menuWidth) / 2;
 		int y = (graphicView.getPreferredSize().height - menuHeight) / 2;
+		mainMenu.setBounds(x, y, menuWidth, menuHeight);
+		mainMenu.setVisible(true);
+		layeredPane.add(mainMenu, JLayeredPane.MODAL_LAYER);
+
+		inGameMenu = new InGameMenu();
+		menuWidth = inGameMenu.getPreferredSize().width;
+		menuHeight = inGameMenu.getPreferredSize().height;
+		x = (graphicView.getPreferredSize().width - menuWidth) / 2;
+		y = (graphicView.getPreferredSize().height - menuHeight) / 2;
 		inGameMenu.setBounds(x, y, menuWidth, menuHeight);
 		inGameMenu.setVisible(false);
 
-		layeredPane.add(inGameMenu, JLayeredPane.PALETTE_LAYER); // InGameMenu on a higher layer
+		layeredPane.add(inGameMenu, JLayeredPane.PALETTE_LAYER);
 
-		// Initialize and add the Game Over Restart Button
 		gameOverRestartButton = new JButton("Restart Game");
 		gameOverRestartButton.setFont(new Font("Arial", Font.BOLD, 24));
-		gameOverRestartButton.setBackground(new Color(70, 130, 180)); // SteelBlue
+		gameOverRestartButton.setBackground(new Color(70, 130, 180));
 		gameOverRestartButton.setForeground(Color.BLACK);
 		gameOverRestartButton.setFocusPainted(false);
-		gameOverRestartButton.setVisible(false); // Initially hidden
+		gameOverRestartButton.setVisible(false);
 
-		int buttonWidth = 200; // Adjust size as needed
+		int buttonWidth = 200;
 		int buttonHeight = 50;
 		int buttonX = (graphicView.getPreferredSize().width - buttonWidth) / 2;
-		int buttonY = (graphicView.getPreferredSize().height / 2) + 70; // Position below game over text
+		int buttonY = (graphicView.getPreferredSize().height / 2) + 70;
 		gameOverRestartButton.setBounds(buttonX, buttonY, buttonWidth, buttonHeight);
-		layeredPane.add(gameOverRestartButton, JLayeredPane.POPUP_LAYER); // On an even higher layer than menu
+		layeredPane.add(gameOverRestartButton, JLayeredPane.POPUP_LAYER);
 
 		this.add(layeredPane, BorderLayout.CENTER);
 
-		enemyMoveTimer = new Timer((int) world.getEnemyMoveIntervalMillis(), e -> {
+		enemyMoveTimer = new Timer(1, e -> {
 			world.moveEnemies();
 			if (world.isGameOver()) {
 				enemyMoveTimer.stop();
-				// Show the restart button when game is over
 				gameOverRestartButton.setVisible(true);
 			}
 		});
-		enemyMoveTimer.start();
 
 		inGameMenu.addResumeButtonListener(e -> handleResumeGame());
 		inGameMenu.addRestartButtonListener(e -> handleRestartGame());
@@ -99,8 +112,9 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 			}
 		});
 
-		// Add action listener for the game over restart button
 		gameOverRestartButton.addActionListener(e -> handleRestartGame());
+
+		mainMenu.addStartButtonListener(e -> handleStartGameFromMenu());
 
 		addKeyListener(this);
 		addMouseListener(this);
@@ -109,13 +123,30 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 		requestFocusInWindow();
 	}
 
+	private void handleStartGameFromMenu() {
+		Difficulty selectedDifficulty = Difficulty.valueOf(mainMenu.getSelectedDifficulty());
+		this.world = new World(selectedDifficulty);
+		this.world.registerView(graphicView);
+
+		mainMenu.setVisible(false);
+		graphicView.setVisible(true);
+		this.world.setPaused(false);
+		enemyMoveTimer.setInitialDelay((int) world.getEnemyMoveIntervalMillis());
+		enemyMoveTimer.setDelay((int) world.getEnemyMoveIntervalMillis());
+		enemyMoveTimer.start();
+		requestFocusInWindow();
+		graphicView.repaint();
+	}
+
 	@Override
 	public void keyTyped(KeyEvent e) { }
 
-	/////////////////// Key Events ////////////////////////////////
-
 	@Override
 	public void keyPressed(KeyEvent e) {
+		if (mainMenu.isVisible()) {
+			return;
+		}
+
 		switch (e.getKeyCode()) {
 			case KeyEvent.VK_UP:
 			case KeyEvent.VK_DOWN:
@@ -133,7 +164,7 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 					if (newPausedState) {
 						enemyMoveTimer.stop();
 						inGameMenu.setSelectedDifficulty(world.getDifficulty().name());
-						gameOverRestartButton.setVisible(false); // Hide game over button if pausing
+						gameOverRestartButton.setVisible(false);
 					} else {
 						enemyMoveTimer.start();
 					}
@@ -146,12 +177,8 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 	@Override
 	public void keyReleased(KeyEvent e) { }
 
-	/////////////////// Action Events ////////////////////////////////
-
 	@Override
-	public void actionPerformed(ActionEvent e) {
-		// This method is now empty as the bottom restart button was removed
-	}
+	public void actionPerformed(ActionEvent e) { }
 
 	private void handleResumeGame() {
 		world.setPaused(false);
@@ -165,16 +192,16 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 		String selectedDifficultyStr = inGameMenu.isVisible() ? inGameMenu.getSelectedDifficulty() : world.getDifficulty().name();
 		Difficulty newDifficulty = Difficulty.valueOf(selectedDifficultyStr);
 
-		world.setCurrentLevel(1); // Reset level to 1
-		world.restart(newDifficulty, true); // Corrected: Pass 'true' to reset health on explicit restart
+		this.world = new World(newDifficulty);
+		this.world.registerView(graphicView);
 
 		enemyMoveTimer.stop();
 		enemyMoveTimer.setInitialDelay((int) world.getEnemyMoveIntervalMillis());
 		enemyMoveTimer.setDelay((int) world.getEnemyMoveIntervalMillis());
 		enemyMoveTimer.start();
 		world.setPaused(false);
-		inGameMenu.setVisible(false); // Hide in-game menu
-		gameOverRestartButton.setVisible(false); // Hide game over restart button on restart
+		inGameMenu.setVisible(false);
+		gameOverRestartButton.setVisible(false);
 		pack();
 		requestFocusInWindow();
 		graphicView.repaint();
@@ -192,7 +219,6 @@ public class Controller extends JFrame implements KeyListener, ActionListener, M
 		}
 	}
 
-	/////////////////// Mouse Events ////////////////////////////////
 	@Override
 	public void mouseClicked(MouseEvent e) {}
 	@Override

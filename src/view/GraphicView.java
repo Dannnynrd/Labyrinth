@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.util.Objects;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
-import java.awt.event.ActionListener; // Keep this import if you still use ActionListener elsewhere, otherwise it can be removed
 
 
 import model.World;
@@ -40,11 +39,11 @@ public class GraphicView extends JPanel implements View {
 	// load the images
 	private void loadImages() {
 		try {
-			wallImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/wall.jpg")));
+			wallImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/wallr.jpg")));
 			playerImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/player.png")));
 			enemyImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/enemy.png")));
-			endImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/end.jpg")));
-			floorImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/floor.jpg")));
+			endImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/end2.png")));
+			floorImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/floor2.png")));
 			powerupImage = ImageIO.read(Objects.requireNonNull(getClass().getResource("/images/powerup.png"))); // NEW: Load power-up image
 		} catch (IOException e) {
 			e.printStackTrace();
