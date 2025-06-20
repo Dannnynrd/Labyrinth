@@ -92,3 +92,4 @@ Diese beeinflussen:
 - Sammle Power-Ups für Vorteile
 
 ---
+s
