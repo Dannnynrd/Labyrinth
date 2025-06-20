@@ -11,7 +11,7 @@ import java.util.Random;
  */
 public enum Difficulty {
     /** Easy difficulty setting. */
-    EASY(25, 2, 0.50, 0.0, 1500),
+    EASY(25, 2, 0.6, 0.0, 1500),
     /** Medium difficulty setting. */
     MEDIUM(35, 3, 0.5, 0.02, 1000),
     /** Hard difficulty setting. */
@@ -42,7 +42,7 @@ public enum Difficulty {
     /** The minimum allowed enemy move interval (prevents enemies from becoming impossibly fast). */
     private static final long MIN_ENEMY_MOVE_INTERVAL = 150;
     /** The maximum allowed wall percentage to prevent completely solid mazes. */
-    private static final double MAX_WALL_PERCENTAGE = 0.70;
+    private static final double MIN_WALL_PERCENTAGE = 0.20;
     /** The maximum allowed enemy percentage to prevent overly crowded mazes. */
     private static final double MAX_ENEMY_PERCENTAGE = 0.20;
 
@@ -115,15 +115,15 @@ public enum Difficulty {
 
     /**
      * Calculates the scaled wall removal percentage for a given game level.
-     * The percentage increases with each level, making mazes denser (fewer removed walls).
-     * The value is capped at 70%
+     * The percentage decreases with each level, making mazes denser (fewer removed walls).
+     * The value is capped at 20%
      *
      * @param level The current game level.
      * @return The calculated scaled wall removal percentage.
      */
     public double getScaledWallPercentage(int level) {
-        double scaled = wallPercentage + (level - 1) * LEVEL_WALL_PERCENTAGE_INCREMENT;
-        return Math.min(scaled, MAX_WALL_PERCENTAGE); // when scaled is over MAX_WALL_PERCANTAGGE (0.70) it always returns 0.70 even when scaled is over 0.70 making sure its not too hard or even impossible
+        double scaled = wallPercentage - (level - 1) * LEVEL_WALL_PERCENTAGE_INCREMENT;
+        return Math.max(scaled, MIN_WALL_PERCENTAGE);
     }
 
     /**
