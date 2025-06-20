@@ -1,20 +1,21 @@
 package model;
 
-import java.awt.event.KeyEvent; // Import KeyEvent
+import java.awt.event.KeyEvent;
 
 /**
- * Represents a direction in the game.
+ * Represents a direction in the game grid.
+ * Each direction has corresponding delta values for X and Y coordinates.
  */
 public enum Direction {
-	/** No movement. */
+	/** No movement */
 	NONE(0, 0),
-	/** Up movement. */
+	/** Upward movement (decreases Y coordinate). */
 	UP(0, -1),
-	/** Down movement. */
+	/** Downward movement (increases Y coordinate). */
 	DOWN(0, 1),
-	/** Left movement. */
+	/** Leftward movement (decreases X coordinate). */
 	LEFT(-1, 0),
-	/** Right movement. */
+	/** Rightward movement (increases X coordinate). */
 	RIGHT(1, 0);
 
 	/** The amount to move in the X direction. */
@@ -24,8 +25,8 @@ public enum Direction {
 
 	/**
 	 * Creates a new direction with the given movement values.
-	 * * @param deltaX The amount to move in the X direction.
-	 * @param deltaY The amount to move in the Y direction.
+	 * @param deltaX The amount to change the X coordinate.
+	 * @param deltaY The amount to change the Y coordinate.
 	 */
 	private Direction(int deltaX, int deltaY) {
 		this.deltaX = deltaX;
@@ -33,10 +34,12 @@ public enum Direction {
 	}
 
 	/**
-	 * Returns the Direction corresponding to a given KeyEvent key code.
+	 * Returns the Direction enum constant corresponding to a given KeyEvent key code.
+	 * This is useful for mapping keyboard inputs to in-game movement directions.
 	 *
-	 * @param keyCode The key code from a KeyEvent.
-	 * @return The corresponding Direction, or NONE if no match.
+	 * @param keyCode The key code from a KeyEvent (e.g., KeyEvent.VK_UP).
+	 * @return The corresponding Direction, or {@link #NONE} if the key code does not
+	 * map to a defined movement direction.
 	 */
 	public static Direction fromKeyCode(int keyCode) {
 		switch (keyCode) {

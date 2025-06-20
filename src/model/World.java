@@ -1,147 +1,153 @@
-// src/model/World.java
 package model;
 
 import java.awt.Point;
 import java.util.ArrayList;
-import java.util.Collections; // For shuffling
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.Stack; // For DFS
+import java.util.Stack;
 import view.View;
 
 
 /**
- * The world is our model. It saves the bare minimum of information required to
- * accurately reflect the state of the game. Note how this does not know
- * anything about graphics.
+ * The World class represents the game model. It holds the complete state of the Labyrinth game,
+ * including the maze structure, player position, enemy positions, power-up locations,
+ * game over status, current level, player health, and active power-up effects.
  */
 public class World {
 
-	/** The world's width. */
+	/** The width of the game world grid. */
 	private int width;
-	/** The world's height. */
+	/** The height of the game world grid. */
 	private int height;
-	/** The player's x position in the world. */
+	/** The player's current X position in the world. */
 	private int playerX = 0;
-	/** The player's y position in the world. */
+	/** The player's current Y position in the world. */
 	private int playerY = 0;
-	/** Walls. True if it's a wall, false if it's a path/floor. */
+	/** A 2D array representing the maze walls. True if it's a wall, false if it's a path/floor. */
 	private boolean[][] walls;
-	/** Enemies */
+	/** A list of Point objects representing the current positions of all enemies. */
 	private final List<Point> enemies;
-	/** Game over (True / False) */
+	/** A boolean flag indicating if the game is over. */
 	private boolean gameOver;
-
+	/** The current difficulty setting of the game. */
 	private Difficulty difficulty;
-
+	/** A boolean flag indicating if the game is currently paused. */
 	private boolean isPaused = false;
-
-	private int currentLevel; // Field to track the current level
-	private int playerHealth; // Player health
-	private static final int MAX_PLAYER_HEALTH = 5; // Maximum health for the player
-
-	// NEW: Power-up states and durations
+	/** The current level the player is on. Starts at 1. */
+	private int currentLevel;
+	/** The player's current health points. */
+	private int playerHealth;
+	/** The maximum possible health for the player. */
+	private static final int MAX_PLAYER_HEALTH = 5;
+	/** Flag indicating if the player is currently invincible. */
 	private boolean isInvincible = false;
-	private long invincibilityRemainingTime = 0; // Milliseconds
-	private static final long MAX_INVINCIBILITY_DURATION_MILLIS = 5000; // 5 seconds
-
+	/** Remaining time (in milliseconds) for the invincibility power-up. */
+	private long invincibilityRemainingTime = 0;
+	/** Maximum duration (in milliseconds) for the invincibility power-up. */
+	private static final long MAX_INVINCIBILITY_DURATION_MILLIS = 2500; // 2.5 seconds
+	/** Flag indicating if enemies are currently frozen. */
 	private boolean areEnemiesFrozen = false;
-	private long enemyFreezeRemainingTime = 0; // Milliseconds
-	private static final long MAX_ENEMY_FREEZE_DURATION_MILLIS = 7000; // 7 seconds
-
-	/** End Block */
+	/** Remaining time (in milliseconds) for the enemy freeze power-up. */
+	private long enemyFreezeRemainingTime = 0;
+	/** Maximum duration (in milliseconds) for the enemy freeze power-up. */
+	private static final long MAX_ENEMY_FREEZE_DURATION_MILLIS = 4000; // 4 seconds
+	/** The X coordinate of the exit point of the labyrinth for the current level. */
 	private int endX = 0;
+	/** The Y coordinate of the exit point of the labyrinth for the current level. */
 	private int endY = 0;
-
-	// NEW: List to store active power-up locations and their types
+	/** A list of active power-up objects currently present in the world. */
 	private final List<Powerup> powerups;
-	private static final int INITIAL_POWERUPS_PER_LEVEL = 3; // Number of power-ups to spawn per level (health/special)
-
-	/** Set of views registered to be notified of world updates. */
+	/** The number of power-ups to spawn at the beginning of each level. */
+	private static final int INITIAL_POWERUPS_PER_LEVEL = 5; // Number of power-ups to spawn per level
+	/** A list of views registered to be notified of world updates. */
 	private final ArrayList<View> views = new ArrayList<>();
 
 	/**
-	 * Creates a new world with the given size.
+	 * Constructs a new World with the given initial difficulty.
+	 * Initializes game state, including level, player health, and power-up lists.
+	 * It then immediately calls {@link #restart(Difficulty, boolean)} to generate the first maze.
+	 *
 	 * @param difficulty The initial difficulty setting for the world.
 	 */
 	public World(Difficulty difficulty) {
 		this.difficulty = difficulty;
 		this.enemies = new ArrayList<>();
 		this.powerups = new ArrayList<>(); // Initialize power-ups list with custom Powerup objects
-		this.currentLevel = 1; // Initialize level to 1
-		this.playerHealth = MAX_PLAYER_HEALTH; // Initialize player health to max
+		this.currentLevel = 1; // Start at level to 1
+		this.playerHealth = MAX_PLAYER_HEALTH; // initializes players health to the MAX_PLAYER_HEALTH
 
 		restart(difficulty, true); // Call restart with initial difficulty, resetting health
 	}
 
 	/**
 	 * Resets and restarts the game with a new difficulty or the current difficulty.
-	 * This method initializes the maze, player, end, and enemy positions.
-	 * @param newDifficulty The difficulty setting for the new game.
-	 * @param resetPlayerHealth True if player health should be reset to default, false to keep current health.
+	 * This method initializes a new maze, places the player, end point, and enemies.
+	 * It also resets power-up states and optionally player health.
+	 *
+	 * @param newDifficulty The current or selected difficulty setting to use for the new game.
+	 * @param resetPlayerHealth True when player will reset the PlayerHealth(Restart game or Game over), False when next level,
 	 */
+
 	public void restart(Difficulty newDifficulty, boolean resetPlayerHealth) {
-		this.difficulty = newDifficulty; // Update the world's difficulty
+		this.difficulty = newDifficulty; // Update the world's difficulty for the new game
 		// Reset game over status
 		this.gameOver = false;
 		// Reset paused status
 		this.isPaused = false;
-		if (resetPlayerHealth) { // Only reset health if explicitly requested
-			this.playerHealth = MAX_PLAYER_HEALTH; // Reset player health on restart
+		if (resetPlayerHealth) { // Resets Players Health when resetPLayerHealth is true (for restart and gameover) not when new level
+			this.playerHealth = MAX_PLAYER_HEALTH;
 		}
 
-		// Reset power-up states
+		// Reset power-up states and their remaining times
 		this.isInvincible = false;
 		this.invincibilityRemainingTime = 0;
 		this.areEnemiesFrozen = false;
 		this.enemyFreezeRemainingTime = 0;
 
-		// Use scaled dimensions based on current level.
-		// Ensure dimensions are odd for maze generation, as common algorithms prefer it for grid consistency (path at odd, walls at even or vice versa).
+		// Use scaled dimensions based on the current level for difficulty.
+		// Ensure dimensions are odd for better maze generation (algorithm).
 		this.width = difficulty.getScaledWorldSize(currentLevel);
 		this.height = difficulty.getScaledWorldSize(currentLevel);
-		if (this.width % 2 == 0) this.width++; // Make it odd
-		if (this.height % 2 == 0) this.height++; // Make it odd
+		if (this.width % 2 == 0) this.width++; // Make width odd
+		if (this.height % 2 == 0) this.height++; // Make height odd
 
+		this.walls = new boolean[width][height]; // Initialize the walls array for the new maze
 
-		this.walls = new boolean[width][height]; // Initialize the walls array here
+		this.enemies.clear(); // Clear existing enemies
+		this.powerups.clear(); // Clear existing power-ups
 
-		this.enemies.clear();
-		this.powerups.clear(); // Clear power-ups on restart
-
-		// Initialize all cells as walls for maze generation
+		// Initialize all cells as walls before maze generation
 		for (int i = 0; i < height; i++) {
 			for (int j = 0; j < width; j++) {
-				this.walls[j][i] = true; // All are walls initially
+				this.walls[j][i] = true; // All cells are walls initially
 			}
 		}
 
 		Random rand = new Random();
 
-		// Set player and end positions.
-		// Player and end should be placed on 'path' cells generated by DFS (typically odd coordinates if maze starts at 1,1).
-		// We'll place them at arbitrary valid odd coordinates.
+		// Set player and end positions on valid 'path' cells.
+		// Randomly choose valid odd coordinates within the bounds.
 		this.playerX = rand.nextInt((width - 1) / 2) * 2 + 1;
 		this.playerY = rand.nextInt((height - 1) / 2) * 2 + 1;
 
+		// Ensure the end point is different from the player's starting position
 		do {
 			this.endX = rand.nextInt((width - 1) / 2) * 2 + 1;
 			this.endY = rand.nextInt((height - 1) / 2) * 2 + 1;
 		} while (this.endX == this.playerX && this.endY == this.playerY);
 
-		// Generate the maze using Depth-First Search (Recursive Backtracker)
-		generateMazeDFS(playerX, playerY); // Start DFS from player's position
+		// Generate the maze using the Depth-First Search (Recursive Backtracker) algorithm,
+		// starting from the player's initial position.
+		generateMazeDFS(playerX, playerY);
 
 		// Post-processing: Remove a percentage of walls to make the labyrinth more open
+		// and prevent it from being too constricting. The percentage scales with level.
 		removeRandomWalls(difficulty.getScaledWallPercentage(currentLevel));
 
 
-		// Ensure player and end positions are not walls (they should be after DFS, but as a safeguard)
-		walls[playerX][playerY] = false;
-		walls[endX][endY] = false;
-
-
-		// Place enemies
+		// Place enemies randomly throughout the maze.
+		// Number of enemies scales with difficulty and current level.
 		int numberOfEnemies = (int) (width * height * difficulty.getScaledEnemyPercentage(currentLevel));
 		for (int i = 0; i < numberOfEnemies; i++) {
 			int enemyX, enemyY;
@@ -149,260 +155,303 @@ public class World {
 			do {
 				enemyX = rand.nextInt(width);
 				enemyY = rand.nextInt(height);
+				// Ensure enemy is not placed on a wall, player, end, or another power-up
 				isWall = isWall(enemyX, enemyY);
 				isPlayer = (enemyX == this.playerX && enemyY == this.playerY);
 				isEnd = (enemyX == this.endX && enemyY == this.endY);
-				isPowerup = isPowerupAt(enemyX, enemyY); // Check against powerup locations
-			} while (isWall || isPlayer || isEnd || isPowerup); // Ensure enemy is not on a wall, player, end, or powerup
-			enemies.add(new Point(enemyX, enemyY));
+				isPowerup = isPowerupAt(enemyX, enemyY);
+			} while (isWall || isPlayer || isEnd || isPowerup);
+			enemies.add(new Point(enemyX, enemyY)); // Add the new enemy
 		}
 
-		// Place power-ups
+		// Place power-ups randomly throughout the maze.
+		// The number of power-ups is fixed per level.
 		for (int i = 0; i < INITIAL_POWERUPS_PER_LEVEL; i++) {
 			int powerupX, powerupY;
 			boolean isWall, isPlayer, isEnd, isEnemy, isAnotherPowerup;
 			PowerupType type;
-			if (i == 0) { // First power-up is always health
+			// Assign specific types to power-ups for consistent distribution
+			if (i == 0) {
 				type = PowerupType.HEALTH;
-			} else if (i == 1) { // Second power-up is invincibility
+			} else if (i == 1) {
 				type = PowerupType.INVINCIBILITY;
-			} else { // Third power-up is enemy freeze
+			} else {
 				type = PowerupType.FREEZE_ENEMIES;
 			}
 
 			do {
 				powerupX = rand.nextInt(width);
 				powerupY = rand.nextInt(height);
+				// Ensure power-up is not placed on a wall, player, end, enemy, or another power-up
 				isWall = isWall(powerupX, powerupY);
 				isPlayer = (powerupX == this.playerX && powerupY == this.playerY);
 				isEnd = (powerupX == this.endX && powerupY == this.endY);
 				isEnemy = isEnemyAt(powerupX, powerupY);
-				isAnotherPowerup = isPowerupAt(powerupX, powerupY); // Check against other powerup locations
-			} while (isWall || isPlayer || isEnd || isEnemy || isAnotherPowerup); // Ensure powerup is not on a wall, player, end, enemy, or another powerup
-			powerups.add(new Powerup(powerupX, powerupY, type));
+				isAnotherPowerup = isPowerupAt(powerupX, powerupY);
+			} while (isWall || isPlayer || isEnd || isEnemy || isAnotherPowerup);
+			powerups.add(new Powerup(powerupX, powerupY, type)); // Add the new power-up
 		}
 
 
-		// Checks if player starts on an enemy
+		// if player is on an enemy and is not invincible, lose health.
 		if (isEnemyAt(playerX, playerY) && !isInvincible) {
 			playerHealth--;
 			if (playerHealth <= 0) {
-				this.gameOver = true; // Player starts on an enemy and has no health left, game over
+				this.gameOver = true; // Game over if health drops to 0 or below
 			}
 		}
 
-		updateViews();
+		updateViews(); // UpdateView
 	}
 
 	/**
 	 * Generates a maze using the Depth-First Search (Recursive Backtracker) algorithm.
-	 * Carves paths by setting wall cells to false.
+	 * This algorithm carves paths by setting wall cells to false, starting from a given point.
+	 * It ensures that a single, continuous path exists through the maze.
 	 *
-	 * @param startX The starting X coordinate for maze generation.
-	 * @param startY The starting Y coordinate for maze generation.
+	 * @param startX The starting X coordinate for maze generation. This cell will be a path.
+	 * @param startY The starting Y coordinate for maze generation. This cell will be a path.
 	 */
 	private void generateMazeDFS(int startX, int startY) {
-		Stack<Point> stack = new Stack<>();
-		boolean[][] visited = new boolean[width][height];
+		Stack<Point> stack = new Stack<>(); // Stack to keep track of visited cells for backtracking
+		boolean[][] visited = new boolean[width][height]; // Tracks visited cells during DFS
 		Random rand = new Random();
 
 		stack.push(new Point(startX, startY));
 		visited[startX][startY] = true;
-		walls[startX][startY] = false; // Carve out the starting cell
+		walls[startX][startY] = false; // Carve out the starting cell, making it a path
 
 		while (!stack.isEmpty()) {
-			Point current = stack.peek(); // Don't pop yet, need to check neighbors
+			Point current = stack.peek(); // Get current cell without removing it (for neighbor checking)
 
+			// Get a list of unvisited neighbors (cells two steps away, as per maze generation rules)
 			List<Direction> unvisitedNeighbors = getUnvisitedNeighbors(current.x, current.y, visited);
 
 			if (!unvisitedNeighbors.isEmpty()) {
+				// Choose a rndom unvisited neigahbor
 				Direction chosenDirection = unvisitedNeighbors.get(rand.nextInt(unvisitedNeighbors.size()));
-				int nextX = current.x + chosenDirection.deltaX * 2; // Move two steps to get to a new cell
-				int nextY = current.y + chosenDirection.deltaY * 2;
+				int nextX = current.x + chosenDirection.deltaX * 2; // Calculate X of the next cell
+				int nextY = current.y + chosenDirection.deltaY * 2; // Calculate Y of the next cell
 
-				// Carve out the wall between current and next cell
+				// Carve out the wall cell between the current cell and the next cell
 				walls[current.x + chosenDirection.deltaX][current.y + chosenDirection.deltaY] = false;
-				walls[nextX][nextY] = false; // Carve out the next cell
+				walls[nextX][nextY] = false; // Carve out the next cell itself
 
-				visited[nextX][nextY] = true;
-				stack.push(new Point(nextX, nextY));
+				visited[nextX][nextY] = true; // Mark the new cell as visited
+				stack.push(new Point(nextX, nextY)); // Push the new cell onto the stack
 			} else {
-				stack.pop(); // Backtrack
+				stack.pop(); // If no unvisited neighbors, backtrack by popping from the stack
 			}
 		}
 	}
 
 	/**
-	 * Gets a list of unvisited neighbors (cells two steps away) from the given coordinates.
-	 * This is used by the DFS maze generation to find new cells to carve paths to.
+	 * Gets a list of unvisited neighbor cells (cells two steps away) from the given coordinates.
+	 * This method is used by the DFS maze generation algorithm to find new paths to carve.
+	 * It checks all four cardinal directions.
 	 *
 	 * @param x The current X coordinate.
 	 * @param y The current Y coordinate.
-	 * @param visited A 2D array indicating visited cells.
-	 * @return A list of Directions to unvisited neighbors.
+	 * @param visited A 2D boolean array indicating which cells have already been visited by DFS.
+	 * @return A list of {@link Direction} enum constants, each representing a valid, unvisited neighbor.
 	 */
 	private List<Direction> getUnvisitedNeighbors(int x, int y, boolean[][] visited) {
 		List<Direction> neighbors = new ArrayList<>();
-		// Check all four cardinal directions (moving 2 steps at a time for maze carving)
+		// Define all four cardinal directions
 		Direction[] cardinalDirections = {Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT};
 
 		for (Direction dir : cardinalDirections) {
-			int neighborX = x + dir.deltaX * 2;
-			int neighborY = y + dir.deltaY * 2;
+			int neighborX = x + dir.deltaX * 2; // Calculate X of the potential new cell (2 steps away)
+			int neighborY = y + dir.deltaY * 2; // Calculate Y of the potential new cell (2 steps away)
 
-			// Check bounds and if the neighbor is unvisited
+			// Check if the potential neighbor is within the world bounds and has not been visited yet
 			if (neighborX >= 0 && neighborX < width && neighborY >= 0 && neighborY < height && !visited[neighborX][neighborY]) {
-				neighbors.add(dir);
+				neighbors.add(dir); // Add this direction as a valid unvisited neighbor
 			}
 		}
-		Collections.shuffle(neighbors); // Shuffle to make maze generation less predictable
+		Collections.shuffle(neighbors); // Shuffle the list to introduce randomness in maze generation
 		return neighbors;
 	}
 
 	/**
-	 * Removes a percentage of the existing walls to make the labyrinth more open.
-	 * Walls that are essential for the labyrinth's structure (border, player/end surroundings)
-	 * are preserved.
-	 *
-	 * @param percentageToOpen The percentage of existing walls to potentially remove (0.0 to 1.0).
-	 * A higher value means more open space.
+	 * Removes a percentage of the existing walls to make the labyrinth more open and less constricting.
+	 * @param percentageToOpen The percentage of existing interior walls to potentially remove.
 	 */
 	private void removeRandomWalls(double percentageToOpen) {
 		Random rand = new Random();
-		int totalWalls = 0;
 		List<Point> potentialWallsToRemove = new ArrayList<>();
 
-		// Identify all existing walls that are not player/end and can potentially be removed
+		// Iterate through the grid to identify all existing walls that are not critical (player, end)
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				if (walls[x][y] && !(x == playerX && y == playerY) && !(x == endX && y == endY)) {
 					potentialWallsToRemove.add(new Point(x, y));
-					totalWalls++;
-				}
 			}
 		}
 
-		// Calculate how many walls to actually remove based on the percentage
+		// Calculate the number of walls to remove based on the given percentage
 		int wallsToRemoveCount = (int) (potentialWallsToRemove.size() * percentageToOpen);
 
-		// Shuffle the list of potential walls and remove the first 'wallsToRemoveCount' walls
+		// Shuffle the list of potential walls to randomize which ones are selected for removal
 		Collections.shuffle(potentialWallsToRemove, rand);
 
+		// Iterate through the shuffled list and remove the specified number of walls
 		for (int i = 0; i < wallsToRemoveCount && i < potentialWallsToRemove.size(); i++) {
 			Point wall = potentialWallsToRemove.get(i);
-			// Only remove if it's still a wall and not player/end (double check)
-			if (walls[wall.x][wall.y] && !(wall.x == playerX && wall.y == playerY) && !(wall.x == endX && wall.y == endY)) {
-				walls[wall.x][wall.y] = false; // Remove the wall
-			}
+				walls[wall.x][wall.y] = false; // Set the cell to a path (remove the wall)
+
 		}
 	}
 
 
-	///////////////////////////////////////////////////////////////////////////
 	// Getters and Setters
+
+	/**
+	 * Checks if the game is currently paused.
+	 * @return true if the game is paused, false otherwise.
+	 */
 	public boolean isPaused() {
 		return isPaused;
 	}
+
+	/**
+	 * Sets the paused state of the game.
+	 * @param paused true to pause the game, false to unpause.
+	 */
 	public void setPaused(boolean paused) {
 		isPaused = paused;
-		updateViews();
+		updateViews(); // Notify views about the pause state change
 	}
+
 	/**
-	 * Returns the width of the world.
-	 *
-	 * @return the width of the world.
+	 * Returns the width of the game world grid.
+	 * @return The width of the world.
 	 */
 	public int getWidth() {
 		return width;
 	}
 
 	/**
-	 * Returns the height of the world.
-	 *
-	 * @return the height of the world.
+	 * Returns the height of the game world grid.
+	 * @return The height of the world.
 	 */
 	public int getHeight() {
 		return height;
 	}
 
 	/**
-	 * Returns the player's x position.
-	 *
-	 * @return the player's x position.
+	 * Returns the player's current X position.
+	 * @return The player's X position.
 	 */
 	public int getPlayerX() {
 		return playerX;
 	}
 
 	/**
-	 * Sets the player's x position.
-	 *
-	 * @param playerX the player's x position.
+	 * Sets the player's X position, ensuring it stays within world bounds.
+	 * @param playerX The new X position for the player.
 	 */
 	public void setPlayerX(int playerX) {
-		playerX = Math.max(0, playerX);
-		playerX = Math.min(getWidth() - 1, playerX);
+		playerX = Math.max(0, playerX); // Ensure not less than 0
+		playerX = Math.min(getWidth() - 1, playerX); // Ensure not greater than width - 1
 		this.playerX = playerX;
 	}
 
 	/**
-	 * Returns the player's y position.
-	 *
-	 * @return the player's y position.
+	 * Returns the player's current Y position.
+	 * @return The player's Y position.
 	 */
 	public int getPlayerY() {
 		return playerY;
 	}
 
 	/**
-	 * Sets the player's y position.
-	 *
-	 * @param playerY the player's y position.
+	 * Sets the player's Y position, ensuring it stays within world bounds.
+	 * @param playerY The new Y position for the player.
 	 */
 	public void setPlayerY(int playerY) {
-		playerY = Math.max(0, playerY);
-		playerY = Math.min(getHeight() - 1, playerY);
+		playerY = Math.max(0, playerY); // Ensure not less than 0
+		playerY = Math.min(getHeight() - 1, playerY); // Ensure not greater than height - 1
 		this.playerY = playerY;
 	}
 
+	/**
+	 * Returns the X coordinate of the end point (exit) of the labyrinth.
+	 * @return The X coordinate of the end point.
+	 */
 	public int getEndX() {
 		return endX;
 	}
+
+	/**
+	 * Returns the Y coordinate of the end point (exit) of the labyrinth.
+	 * @return The Y coordinate of the end point.
+	 */
 	public int getEndY() {
 		return endY;
 	}
 
+	/**
+	 * Returns a list of all current enemy positions in the world.
+	 * @return A {@link List} of {@link Point} objects representing enemy coordinates.
+	 */
 	public List<Point> getEnemies() {
 		return enemies;
 	}
 
-	// Getter for all power-ups
+	/**
+	 * Returns a list of all active power-ups currently present in the world.
+	 * @return A {@link List} of {@link Powerup} objects.
+	 */
 	public List<Powerup> getPowerups() {
 		return powerups;
 	}
 
-	public boolean isGameOver() {return gameOver;}
+	/**
+	 * Checks if the game is currently in a "game over" state.
+	 * @return true if the game is over, false otherwise.
+	 */
+	public boolean isGameOver() {
+		return gameOver;
+	}
 
-	// Getter for player health
+	/**
+	 * Returns the player's current health.
+	 * @return The current health points of the player.
+	 */
 	public int getPlayerHealth() {
 		return playerHealth;
 	}
 
-	// Getter for max player health
+	/**
+	 * Returns the maximum possible health the player can have.
+	 * @return The maximum player health.
+	 */
 	public int getMaxPlayerHealth() {
 		return MAX_PLAYER_HEALTH;
 	}
 
-	// Getter for invincibility status
+	/**
+	 * Checks if the player is currently invincible.
+	 * @return true if the player is invincible, false otherwise.
+	 */
 	public boolean isInvincible() {
 		return isInvincible;
 	}
 
-	// Getter for enemy freeze status
+	/**
+	 * Checks if enemies are currently frozen.
+	 * @return true if enemies are frozen, false otherwise.
+	 */
 	public boolean areEnemiesFrozen() {
 		return areEnemiesFrozen;
 	}
 
+	/**
+	 * Checks if an enemy is present at the given coordinates.
+	 * @param x The X coordinate to check.
+	 * @param y The Y coordinate to check.
+	 * @return true if an enemy is at (x, y), false otherwise.
+	 */
 	public boolean isEnemyAt(int x, int y) {
 		for (Point enemy : enemies) {
 			if(enemy.x == x && enemy.y == y){
@@ -412,7 +461,12 @@ public class World {
 		return false;
 	}
 
-	// Check if a powerup is at the given coordinates
+	/**
+	 * Checks if a power-up is present at the given coordinates.
+	 * @param x The X coordinate to check.
+	 * @param y The Y coordinate to check.
+	 * @return true if a power-up is at (x, y), false otherwise.
+	 */
 	public boolean isPowerupAt(int x, int y) {
 		for (Powerup powerup : powerups) {
 			if(powerup.x == x && powerup.y == y){
@@ -422,7 +476,12 @@ public class World {
 		return false;
 	}
 
-	// Get a specific powerup by coordinates
+	/**
+	 * Retrieves the Powerup object at the given coordinates.
+	 * @param x The X coordinate to check.
+	 * @param y The Y coordinate to check.
+	 * @return The Powerup object at (x, y), or null if no power-up is found there.
+	 */
 	public Powerup getPowerupAt(int x, int y) {
 		for (Powerup powerup : powerups) {
 			if(powerup.x == x && powerup.y == y){
@@ -432,235 +491,282 @@ public class World {
 		return null;
 	}
 
-	// Getter for current level
+	/**
+	 * Returns the current game level.
+	 * @return The current level number.
+	 */
 	public int getCurrentLevel() {
 		return currentLevel;
 	}
 
+	/**
+	 * Returns the calculated enemy movement interval (in milliseconds) for the current level and difficulty.
+	 * This value scales based on the game level.
+	 * @return The enemy movement interval in milliseconds.
+	 */
 	public long getEnemyMoveIntervalMillis() {
 		return difficulty.getScaledEnemyMoveIntervalMillis(currentLevel);
 	}
 
-	// Getter for current difficulty
+	/**
+	 * Returns the current difficulty setting of the game.
+	 * @return The current {@link Difficulty} enum constant.
+	 */
 	public Difficulty getDifficulty() {
 		return difficulty;
 	}
+
+	/**
+	 * Sets the current game level. This is primarily used internally when advancing levels.
+	 * @param currentLevel The new current level number.
+	 */
 	public void setCurrentLevel(int currentLevel) {
 		this.currentLevel = currentLevel;
 	}
 
-	// NEW: Methods to decrease power-up timers
+	/**
+	 * Decreases the remaining time for the invincibility power-up.
+	 * If the time runs out, the player is no longer invincible.
+	 * @param deltaTimeMillis The amount of time (in milliseconds) that has passed.
+	 */
 	public void decreaseInvincibilityTimer(long deltaTimeMillis) {
 		if (isInvincible) {
 			invincibilityRemainingTime -= deltaTimeMillis;
 			if (invincibilityRemainingTime <= 0) {
 				isInvincible = false;
-				invincibilityRemainingTime = 0;
+				invincibilityRemainingTime = 0; // Ensure it's not negative
 			}
-			updateViews();
+			updateViews(); // Update views to reflect invincibility status change
 		}
 	}
 
+	/**
+	 * Decreases the remaining time for the enemy freeze power-up.
+	 * If the time runs out, enemies are no longer frozen.
+	 * @param deltaTimeMillis The amount of time (in milliseconds) that has passed.
+	 */
 	public void decreaseEnemyFreezeTimer(long deltaTimeMillis) {
 		if (areEnemiesFrozen) {
 			enemyFreezeRemainingTime -= deltaTimeMillis;
 			if (enemyFreezeRemainingTime <= 0) {
 				areEnemiesFrozen = false;
-				enemyFreezeRemainingTime = 0;
+				enemyFreezeRemainingTime = 0; // Ensure it's not negative
 			}
-			updateViews();
+			updateViews(); // Update views to reflect enemy freeze status change
 		}
 	}
 
 
-	///////////////////////////////////////////////////////////////////////////
 	// Player Management
 
 	/**
-	 * Moves the player along the given direction.
+	 * Moves the player in the specified direction.
+	 * The player can only move into non-wall cells.
+	 * This method handles power-up collection, level completion, and enemy collisions.
 	 *
-	 * @param direction where to move.
+	 * @param direction The {@link Direction} in which to move the player.
 	 */
-
 	public void movePlayer(Direction direction) {
+		// Player cannot move if the game is over or paused
 		if (isGameOver() || isPaused()) {
 			return;
 		}
+
+		// Calculate potential new player coordinates
 		int newPlayerX = getPlayerX() + direction.deltaX;
 		int newPlayerY = getPlayerY() + direction.deltaY;
 
+		// Check if the new position is not a wall
 		if (!isWall(newPlayerX, newPlayerY)) {
-			setPlayerX(newPlayerX);
-			setPlayerY(newPlayerY);
+			setPlayerX(newPlayerX); // Update player's X position
+			setPlayerY(newPlayerY); // Update player's Y position
 
-			// Check if player collected a power-up
+			// Check if the player collected a power-up at the new position
 			Powerup collectedPowerup = getPowerupAt(playerX, playerY);
 			if (collectedPowerup != null) {
 				switch (collectedPowerup.type) {
 					case HEALTH:
+						// Increase player health, capping at MAX_PLAYER_HEALTH
 						playerHealth = Math.min(playerHealth + 1, MAX_PLAYER_HEALTH);
 						break;
 					case INVINCIBILITY:
+						// Activate invincibility and set its duration
 						isInvincible = true;
 						invincibilityRemainingTime = MAX_INVINCIBILITY_DURATION_MILLIS;
 						break;
 					case FREEZE_ENEMIES:
+						// Activate enemy freeze and set its duration
 						areEnemiesFrozen = true;
 						enemyFreezeRemainingTime = MAX_ENEMY_FREEZE_DURATION_MILLIS;
 						break;
 				}
-				powerups.remove(collectedPowerup);
+				powerups.remove(collectedPowerup); // Remove the collected power-up from the world
 			}
 
-			// Check if player reached the end point
+			// Check if the player reached the end point (level completion)
 			if (playerX == endX && playerY == endY) {
-				currentLevel++; // Increment level
-				restart(this.difficulty, false); // Restart the level with current difficulty settings, DO NOT reset health
-				return; // Exit method, a new level has started
+				currentLevel++; // Increment the current level
+				// Restart the level with the current difficulty, but do NOT reset player health
+				restart(this.difficulty, false);
+				return; // Exit method as a new level has started
 			}
 
-			// If player encounters an enemy, lose health (unless invincible)
+			// If player encounters an enemy at the new position and is not invincible, lose health
 			if(isEnemyAt(getPlayerX(),getPlayerY()) && !isInvincible){
 				playerHealth--;
 				if (playerHealth <= 0) {
-					this.gameOver = true;
+					this.gameOver = true; // Game over if health drops to 0 or below
 				}
 			}
 		}
-		updateViews(); // Update views after player move
+		updateViews(); // Notify all registered views about the world state change
 	}
 
 	/**
-	 * Moves all enemies towards the player, avoiding walls if possible.
+	 * Moves all enemies towards the player's current position.
+	 * Enemies try to move horizontally or vertically towards the player,
+	 * prioritizing one direction randomly if both are possible.
+	 * They avoid moving into walls.
+	 * also handles collisions between enemies and the player.
 	 */
 	public void moveEnemies() {
-		if (isPaused() || isGameOver() || areEnemiesFrozen) { // Enemies don't move if frozen
+		// Enemies do not move if the game is paused, over, or if enemies are frozen by a power-up
+		if (isPaused() || isGameOver() || areEnemiesFrozen) {
 			return;
 		}
 
 		Random rand = new Random();
 
+		// Iterate through each enemy
 		for (Point enemy : enemies) {
 			int currentEnemyX = enemy.x;
 			int currentEnemyY = enemy.y;
 
-			int targetX = playerX;
-			int targetY = playerY;
+			int targetX = playerX; // Player's X coordinate is the target
+			int targetY = playerY; // Player's Y coordinate is the target
 
-			int deltaX = Integer.compare(targetX, currentEnemyX);
-			int deltaY = Integer.compare(targetY, currentEnemyY);
+			// Calculate direction needed to move towards the player
+			int deltaX = Integer.compare(targetX, currentEnemyX); // -1 (left), 0 (same), 1 (right)
+			int deltaY = Integer.compare(targetY, currentEnemyY); // -1 (up), 0 (same), 1 (down)
 
-			// Try to move in one direction, or randomly choose
+			// Determine movement preference: try to move both horizontally and vertically if needed
 			if (deltaX != 0 && deltaY != 0) {
-				if (rand.nextBoolean()) { // Try to move horizontally
+				if (rand.nextBoolean()) { // Randomly choose to try horizontal or vertical first
 					int potentialNewX = currentEnemyX + deltaX;
 					if (!isWall(potentialNewX, currentEnemyY)) {
-						enemy.setLocation(potentialNewX, currentEnemyY);
-					} else { // If horizontal is blocked, try vertically
+						enemy.setLocation(potentialNewX, currentEnemyY); // Move horizontally
+					} else { // If horizontal path is blocked, try moving vertically
 						int potentialNewY = currentEnemyY + deltaY;
 						if (!isWall(currentEnemyX, potentialNewY)) {
-							enemy.setLocation(currentEnemyX, potentialNewY);
+							enemy.setLocation(currentEnemyX, potentialNewY); // Move vertically
 						}
 					}
-				} else { // Try to move vertically
+				} else { // Try to move vertically first
 					int potentialNewY = currentEnemyY + deltaY;
 					if (!isWall(currentEnemyX, potentialNewY)) {
-						enemy.setLocation(currentEnemyX, potentialNewY);
-					} else { // If vertical is blocked, try horizontally
+						enemy.setLocation(currentEnemyX, potentialNewY); // Move vertically
+					} else { // If vertical path is blocked, try moving horizontally
 						int potentialNewX = currentEnemyX + deltaX;
 						if (!isWall(potentialNewX, currentEnemyY)) {
-							enemy.setLocation(potentialNewX, currentEnemyY);
+							enemy.setLocation(potentialNewX, currentEnemyY); // Move horizontally
 						}
 					}
 				}
-			} else if (deltaX != 0) { // Only horizontal movement needed
+			} else if (deltaX != 0) { // Only horizontal movement is needed
 				int potentialNewX = currentEnemyX + deltaX;
 				if (!isWall(potentialNewX, currentEnemyY)) {
 					enemy.setLocation(potentialNewX, currentEnemyY);
 				}
-			} else if (deltaY != 0) { // Only vertical movement needed
+			} else if (deltaY != 0) { // Only vertical movement is needed
 				int potentialNewY = currentEnemyY + deltaY;
 				if (!isWall(currentEnemyX, potentialNewY)) {
 					enemy.setLocation(currentEnemyX, potentialNewY);
 				}
 			}
 
-			// Collision check after enemy moves - lose health (unless invincible)
+			// Collision check after the enemy has moved:
+			// If an enemy lands on the player's position and the player is not invincible,
+			// the player loses health.
 			if (enemy.x == playerX && enemy.y == playerY && !isInvincible) {
-				playerHealth--;
+				playerHealth--; // Decrease player health
 				if (playerHealth <= 0) {
-					this.gameOver = true;
+					this.gameOver = true; // Set game over if health reaches zero or below
 				}
-				break; // Health lost, no need to move other enemies this cycle or check further
+				break;
 			}
 		}
-		updateViews(); // Update views after all enemies moved
+		updateViews(); // Notify all registered views about the world state change
 	}
 
 
-	///////////////////////////////////////////////////////////////////////////
 	// View Management
 
 	/**
-	 * Adds the given view of the world and updates it once. Once registered through
-	 * this method, the view will receive updates whenever the world changes.
+	 * Adds the given view to the list of registered views and immediately updates it once
+	 * with the current state of the world.
+	 * Once registered, the view will receive subsequent updates whenever the world's state changes.
 	 *
-	 * @param view the view to be registered.
+	 * @param view The {@link View} object to be registered.
 	 */
 	public void registerView(View view) {
 		views.add(view);
-		view.update(this);
+		view.update(this); // Initial update for the newly registered view
 	}
 
 	/**
-	 * Updates all views by calling their {@link View#update(World)} methods.
+	 * Notifies all registered views by calling their {@link View#update(World)} method.
+	 * This should be called whenever the internal state of the World model changes
+	 * and needs to be reflected in the visual display.
 	 */
 	private void updateViews() {
+		// Iterate through all registered views and trigger their update method
 		for (int i = 0; i < views.size(); i++) {
 			views.get(i).update(this);
 		}
 	}
 
 	/**
-	 * Checks if a given coordinate represents a wall.
+	 * Checks if a given coordinate in the world represents a wall.
+	 * It also treats coordinates outside the world bounds as walls.
 	 *
 	 * @param x The X coordinate to check.
 	 * @param y The Y coordinate to check.
-	 * @return True if the coordinate is a wall or out of bounds, false otherwise.
+	 * @return true if the coordinate is a wall or out of bounds, false otherwise (it's a path).
 	 */
 	public boolean isWall(int x, int y) {
+		// Check if coordinates are within the valid bounds of the world grid
 		if  (x >= 0 && x < width && y >= 0 && y < height) {
-			return walls[x][y];
+			return walls[x][y]; // Return true if the cell at (x,y) is marked as a wall
 		}
-		return true; // Treat out-of-bounds as walls
+		return true; // Treat any coordinates outside the world boundaries as impassable walls
 	}
 
 	/**
-	 * Returns the direction to the end point relative to the player.
-	 * @return A string indicating the direction (e.g., "North", "South-East", or "Here").
+	 * Returns a string indicating the cardinal and intercardinal direction from the player's
+	 * current position to the end point of the labyrinth.
+	 *
+	 * @return A string representing the direction (e.g., "North", "SouthEast", "Here").
 	 */
 	public String getDirectionToEnd() {
+		// Calculate the difference in coordinates between the end point and the player
 		int deltaX = endX - playerX;
 		int deltaY = endY - playerY;
 
-		if (deltaX == 0 && deltaY == 0) {
-			return "Here";
-		}
 
 		StringBuilder direction = new StringBuilder();
 
+		// Determine vertical direction
 		if (deltaY < 0) {
 			direction.append("North");
 		} else if (deltaY > 0) {
 			direction.append("South");
 		}
-
+		// Determine horizontal direction
 		if (deltaX < 0) {
 			direction.append("West");
 		} else if (deltaX > 0) {
 			direction.append("East");
 		}
-
 		return direction.toString();
 	}
 }

@@ -1,56 +1,48 @@
-// src/controller/Labyrinth.java
 package controller;
 
 import model.Difficulty;
 import model.World;
 import view.ConsoleView;
 import view.GraphicView;
-import view.MainMenu; // No longer imported as JFrame, but still used conceptually
-
 import javax.swing.JFrame;
 import java.awt.*;
 
 /**
- * This is our main program. It is responsible for creating all of the objects
- * that are part of the MVC pattern and connecting them with each other.
+ * This is the main program class for the Labyrinth game.
+ * It is responsible for creating and configuring the core components of the
+ * MVC pattern and setting up the game window.
+ * It runs the Game
  */
 public class Labyrinth {
 
     /**
      * The main entry point of the program.
-     * It creates and shows the main menu initially within the main game window.
+     * It initializes the UI and
+     * creates the initial game components (Controller, GraphicView, MainMenu),
+     * and makes the main game window visible.
+     *
+     * @param args Command line arguments (not used).
      */
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> {
-            // Create a dummy World and GraphicView initially to set up the Controller's frame.
-            // The actual World will be created when "Start Game" is pressed.
-            World dummyWorld = new World(Difficulty.MEDIUM); // Use a default difficulty for setup
-            Dimension fieldDimensions = new Dimension(45, 45);
-            GraphicView gview = new GraphicView(fieldDimensions);
-            // No need to register dummyWorld with gview yet.
+            // Create a temporary World and GraphicView initially.
+            // The actual World will be instantiated and configured when the "Start Game" button
+            // is pressed in the MainMenu, which is handled by the Controller.
+            World temporary = new World(Difficulty.MEDIUM); // Diffculty Medium will be enabled by default
+            Dimension fieldDimensions = new Dimension(45, 45); // Size x * y
+            GraphicView gview = new GraphicView(fieldDimensions); // Create the graphical view
 
-            ConsoleView cview = new ConsoleView(); // Initialize ConsoleView if it's always desired
+            // Initialize ConsoleView
+            ConsoleView cview = new ConsoleView();
 
-            Controller controller = new Controller(dummyWorld, fieldDimensions, gview); // Pass dummyWorld
-            controller.setTitle("Labyrinth Game");
-            controller.setResizable(false);
-            controller.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            controller.pack();
-            controller.setVisible(true);
+            // Create the main Controller instance, which manages the game logic and UI interactions.
+            Controller controller = new Controller(temporary, fieldDimensions, gview,cview);
+            controller.setTitle("Labyrinth Game"); // Set the window title
+            controller.setResizable(false); // Prevent window resizing to maintain layout integrity
+            controller.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // When closed, the app will be terminated
+            controller.pack(); // Adjust the window size to fit its components
+            controller.setVisible(true); // Make the main game window visible
 
-            // The main menu is now handled internally by the Controller,
-            // so we don't need to explicitly create and manage it here.
-            // The controller's MainMenu start button listener will initiate the game.
         });
     }
-
-    // The startGame method is now effectively integrated into the Controller's
-    // handleStartGameFromMenu method, which is called when the start button
-    // in the MainMenu (now a JPanel) is clicked.
-    // So, this method is no longer directly called from main.
-    /*
-    public static void startGame(Difficulty difficulty) {
-        // This logic is now part of Controller.handleStartGameFromMenu()
-    }
-    */
 }
